@@ -1,4 +1,4 @@
-package imapsql
+package backendtests
 
 import appendlimit "github.com/emersion/go-imap-appendlimit"
 

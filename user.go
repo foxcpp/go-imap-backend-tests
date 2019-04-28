@@ -1,4 +1,4 @@
-package testsuite
+package backendtests
 
 import (
 	"testing"

@@ -1,4 +1,4 @@
-package testsuite
+package backendtests
 
 import (
 	"io/ioutil"
@@ -17,8 +17,6 @@ import (
 // This tests block is intended to test backend's ability to return
 // correct body sections if it implements some advanced indexing
 // for them to increase performance.
-// go-imap-sql doesn't implement anything like that and just uses backendutil
-// for matching so this part of suite is useless for it.
 
 const testBodyString = "--message-boundary\r\n" +
 	testAltHeaderString +

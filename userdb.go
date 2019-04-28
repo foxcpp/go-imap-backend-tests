@@ -1,45 +1,65 @@
-package imapsql
+package backendtests
 
 import (
+	"testing"
+
 	"github.com/emersion/go-imap/backend"
-	"github.com/pkg/errors"
+	"gotest.tools/assert"
 )
 
-var (
-	ErrUserAlreadyExists = errors.New("imap: user already exists")
-	ErrUserDoesntExists  = errors.New("imap: user doesn't exists")
-)
+func UserDB_CreateUser(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
+	b := newBack()
+	defer closeBack(b)
 
-// UsersDB is additional backend interface that allows external code
-// to perform administrative actions on backend's storage related to users.
-type UsersDB interface {
-	// CreateUser creates new user with specified username.
-	//
-	// No mailboxes are created for new user, even INBOX.  This should be done
-	// manually using CreateMailbox.
-	//
-	// It is error to create user which already exists.  ErrUserAlreadyExists
-	// will be returned in this case.
-	CreateUser(username, password string) error
+	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
+	assert.Error(t, b.CreateUser("username1", "password1"), ErrUserAlreadyExists.Error(), "CreateUser username1 (again) failed")
 
-	// DeleteUser deletes user account from backend storage, along with all
-	// mailboxes and messages.
-	//
-	// It is error to delete user which doesn't exists.  ErrUserDoesntExists
-	// will be returned in this case.
-	DeleteUser(username string) error
+	u, err := b.Login("username1", "password1")
+	assert.NilError(t, err, "GetUser username1 failed")
+	assert.NilError(t, u.Logout())
 
-	// SetUserPassword updates password of existsing user.
-	//
-	// It is error to update user which doesn't exists.  ErrUserDoesntExists
-	// will be returned in this case.
-	SetUserPassword(username, newPassword string) error
+	_, err = b.Login("username2", "password1")
+	assert.Error(t, err, backend.ErrInvalidCredentials.Error(), "GetUser username2 failed")
 }
 
-type IMAPUsersDB interface {
-	UsersDB
+func UserDB_Login(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
+	b := newBack()
+	defer closeBack(b)
 
-	// GetUser is same as Backend.Login but doesn't
-	// performs any authentication.
-	GetUser(username string) (backend.User, error)
+	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
+
+	u, err := b.Login("username1", "password1")
+	assert.NilError(t, err, "Login username1")
+	assert.NilError(t, u.Logout())
+}
+
+func UserDB_SetPassword(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
+	b := newBack()
+	defer closeBack(b)
+
+	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
+
+	u, err := b.Login("username1", "password1")
+	assert.NilError(t, err, "Login with original password")
+	assert.NilError(t, u.Logout())
+
+	assert.NilError(t, b.SetUserPassword("username1", "password2"), "SetPassword failed")
+
+	_, err = b.Login("username1", "password1")
+	assert.Error(t, err, backend.ErrInvalidCredentials.Error(), "Login with original password (again) failed")
+
+	u, err = b.Login("username1", "password2")
+	assert.NilError(t, err, "Login with new password failed")
+	assert.NilError(t, u.Logout())
+}
+
+func UserDB_DeleteUser(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
+	b := newBack()
+	defer closeBack(b)
+
+	assert.Error(t, b.DeleteUser("username1"), ErrUserDoesntExists.Error(), "DeleteUser username1 (non existent) failed")
+	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
+	assert.NilError(t, b.DeleteUser("username1"), "DeleteUser username1 failed")
+	_, err := b.Login("username1", "password1")
+	assert.Error(t, err, backend.ErrInvalidCredentials.Error(), "Login username failed")
 }

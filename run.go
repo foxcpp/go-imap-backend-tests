@@ -1,4 +1,4 @@
-package testsuite
+package backendtests
 
 import (
 	"reflect"
@@ -7,28 +7,38 @@ import (
 	"testing"
 
 	"github.com/emersion/go-imap/backend"
-	"github.com/foxcpp/go-imap-sql"
 )
 
 type Backend interface {
 	backend.Backend
-	imapsql.IMAPUsersDB
+	IMAPUsersDB
 }
 
+// NewBackFunc should create new Backend object configured for testing.
+//
+// It should ensure that backend object created with each call gets a clean
+// empty state.
 type NewBackFunc func() Backend
+
+// CloseBackFunc should clean up Backend object after testing.
+//
+// Most importantly, it should ensure that all persistent data is removed
+// so next test will get clean state.
 type CloseBackFunc func(Backend)
 
 type testFunc func(*testing.T, NewBackFunc, CloseBackFunc)
 
-func GetFunctionName(i interface{}) string {
+func getFunctionName(i interface{}) string {
 	parts := strings.Split(runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name(), "/")
-	prefix := "testsuite."
+	prefix := "go-imap-backend-tests."
 	return parts[len(parts)-1][len(prefix):]
 }
 
+// RunTests runs all tests against backend created using passed callback
+// functions.
 func RunTests(t *testing.T, newBackend NewBackFunc, closeBackend CloseBackFunc) {
 	addTest := func(f testFunc) {
-		t.Run(GetFunctionName(f), func(t *testing.T) {
+		t.Run(getFunctionName(f), func(t *testing.T) {
 			f(t, newBackend, closeBackend)
 		})
 	}
@@ -48,6 +58,7 @@ func RunTests(t *testing.T, newBackend NewBackFunc, closeBackend CloseBackFunc) 
 	addTest(User_RenameMailbox_Childrens)
 	addTest(User_RenameMailbox_INBOX)
 	addTest(Mailbox_Info)
+	addTest(Mailbox_Children)
 	addTest(Mailbox_Status)
 	addTest(Mailbox_SetSubscribed)
 	addTest(Mailbox_CreateMessage)

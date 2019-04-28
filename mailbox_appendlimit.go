@@ -1,4 +1,4 @@
-package testsuite
+package backendtests
 
 import (
 	"strings"
@@ -8,7 +8,6 @@ import (
 	"github.com/emersion/go-imap"
 	appendlimit "github.com/emersion/go-imap-appendlimit"
 	"github.com/emersion/go-imap/backend"
-	imapsql "github.com/foxcpp/go-imap-sql"
 	"gotest.tools/assert"
 )
 
@@ -16,9 +15,9 @@ func Backend_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 	b := newBack()
 	defer closeBack(b)
 
-	bAL, ok := b.(imapsql.AppendLimitBackend)
+	bAL, ok := b.(AppendLimitBackend)
 	if !ok {
-		t.Skip("APPENDLIMIT extension is not implemented (need imapsql.AppendLimitBackend interface)")
+		t.Skip("APPENDLIMIT extension is not implemented (need AppendLimitBackend interface)")
 		t.SkipNow()
 	}
 
@@ -56,14 +55,14 @@ func User_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
 
-	bAL, ok := b.(imapsql.AppendLimitBackend)
+	bAL, ok := b.(AppendLimitBackend)
 	if !ok {
-		t.Skip("APPENDLIMIT extension is not implemented (need imapsql.AppendLimitBackend interface)")
+		t.Skip("APPENDLIMIT extension is not implemented (need AppendLimitBackend interface)")
 		t.SkipNow()
 	}
-	uAL, ok := u.(imapsql.AppendLimitUser)
+	uAL, ok := u.(AppendLimitUser)
 	if !ok {
-		t.Skip("APPENDLIMIT extension is not implemented (need imapsql.AppendLimitUser interface)")
+		t.Skip("APPENDLIMIT extension is not implemented (need AppendLimitUser interface)")
 		t.SkipNow()
 	}
 
@@ -118,21 +117,21 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
 
-	bAL, ok := b.(imapsql.AppendLimitBackend)
+	bAL, ok := b.(AppendLimitBackend)
 	if !ok {
-		t.Skip("APPENDLIMIT extension is not implemented (need imapsql.AppendLimitBackend interface)")
+		t.Skip("APPENDLIMIT extension is not implemented (need AppendLimitBackend interface)")
 		t.SkipNow()
 	}
-	uAL, ok := u.(imapsql.AppendLimitUser)
+	uAL, ok := u.(AppendLimitUser)
 	if !ok {
-		t.Skip("APPENDLIMIT extension is not implemented (need imapsql.AppendLimitUser interface)")
+		t.Skip("APPENDLIMIT extension is not implemented (need AppendLimitUser interface)")
 		t.SkipNow()
 	}
 
 	setMboxLim := func(t *testing.T, mbox backend.Mailbox, val uint32) {
-		mAL, ok := mbox.(imapsql.AppendLimitMbox)
+		mAL, ok := mbox.(AppendLimitMbox)
 		if !ok {
-			t.Skip("APPENDLIMIT extension is not implemented (need imapsql.AppendLimitMbox inteface)")
+			t.Skip("APPENDLIMIT extension is not implemented (need AppendLimitMbox inteface)")
 			t.SkipNow()
 		}
 		assert.NilError(t, mAL.SetMessageLimit(&val))
