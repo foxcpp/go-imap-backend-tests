@@ -33,7 +33,6 @@ func Mailbox_Info(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	assert.Equal(t, info.Name, mbox.Name(), "Mailbox name mismatch")
 }
 
-
 const testMsg = `To: test@test
 From: test <test@test>
 Subject: test
@@ -48,6 +47,8 @@ Test! Test! Test! Test!
 
 func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	t.Run("UidNext", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		b := newBack()
 		defer closeBack(b)
 		u := getUser(t, b)
@@ -72,6 +73,8 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 	})
 
 	t.Run("Messages + Recent", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		b := newBack()
 		defer closeBack(b)
 		u := getUser(t, b)
@@ -93,6 +96,8 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 	})
 
 	t.Run("UnseenSeqNum", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		b := newBack()
 		defer closeBack(b)
 		u := getUser(t, b)
@@ -115,6 +120,8 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 
 func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	t.Run("SetSubscribed true", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		b := newBack()
 		defer closeBack(b)
 		u := getUser(t, b)
@@ -128,6 +135,8 @@ func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		assert.Assert(t, len(mboxes) == 1 && mboxes[0].Name() == mbox.Name(), "Mailbox is not present in list when subscribed")
 	})
 	t.Run("SetSubscribed false", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		b := newBack()
 		defer closeBack(b)
 		u := getUser(t, b)
@@ -186,6 +195,8 @@ func Mailbox_ListMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	createMsgs(t, mbox, 3)
 
 	testMsgs := func(uid bool, seqset string, expectedIndxes []int) {
+		skipIfExcluded(t)
+
 		namePrefix := "Seq "
 		if uid {
 			namePrefix = "Uid "
@@ -255,6 +266,8 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		finalFlags [][]string) bool {
 
 		return t.Run(fmt.Sprintf("uid=%v seqset=%v op=%v opArgs=%v", uid, seqset, op, opArgs), func(t *testing.T) {
+			skipIfExcluded(t)
+
 			mbox := getMbox(t, u)
 			for _, flagset := range initialFlags {
 				assert.NilError(t, mbox.CreateMessage(flagset, time.Now(), strings.NewReader(testMsg)))
@@ -703,6 +716,8 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer assert.NilError(t, u.Logout())
 
 	testCopy := func(uid bool, seqset string, expectedTgtRes []int) bool {
+		skipIfExcluded(t)
+
 		return t.Run(fmt.Sprintf("uid=%v seqset=%v", uid, seqset), func(t *testing.T) {
 			srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
 			createMsgs(t, srcMbox, 3)
@@ -728,6 +743,8 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	}
 
 	t.Run("Non-Existent Dest", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		srcMbox := getMbox(t, u)
 		createMsgs(t, srcMbox, 3)
 		seq, _ := imap.ParseSeqSet("2:3")
@@ -765,6 +782,8 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	}
 
 	t.Run("Recent flag", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
 		createMsgs(t, srcMbox, 1)
 
@@ -831,6 +850,8 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 
 	testMove := func(uid bool, seqset string, expectedSrcRes, expectedTgtRes []int) bool {
 		return t.Run(fmt.Sprintf("uid=%v seqset=%v", uid, seqset), func(t *testing.T) {
+			skipIfExcluded(t)
+
 			srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
 			createMsgs(t, srcMbox, 3)
 
@@ -882,6 +903,8 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	}
 
 	t.Run("Non-Existent Dest", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		srcMbox := getMbox(t, u)
 		moveMbox := srcMbox.(move.Mailbox)
 		createMsgs(t, srcMbox, 3)
@@ -922,6 +945,8 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	}
 
 	t.Run("Recent flag", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
 		createMsgs(t, srcMbox, 1)
 

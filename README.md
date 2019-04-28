@@ -3,7 +3,7 @@ go-imap-backend-tests
 
 Blackbox tests for [go-imap] backends. 
 
-The main intention of suite is to test basic RFC 3501 conformance.
+The main intention of suite is to test for basic RFC 3501 conformance.
 Tests are developed in parallel with [go-imap-sql] so they reflect its
 conformance.
 
@@ -22,6 +22,22 @@ conformance.
 * APPENDLIMIT extension tests (optional, see [appendlimit.go][appendlimit.go] for interfaces)
 * CHILDREN extension tests (optional, see [children/server.go][children/server.go] for interfaces)
 * MOVE extension tests (optional) (MoveMessages)
+
+### Blacklist/whitelist tests
+
+You can disable some tests by setting Whitelist or Blacklist slices before
+calling RunTests.
+
+If Whitelistis not nil, only tests that have name starting with any
+listed string will be run.
+
+If Blacklistis not nil, tests that have name starting with any listed
+string will not be run. Blacklist is still checked if Whitelistis
+set.
+
+Excluded tests will be skipped using testing/T.SkipNow function.
+
+For strings, use full name of test, as printed by `go test -v`, but unescaped.
 
 ### Incomplete RFC 3501 conformance
 

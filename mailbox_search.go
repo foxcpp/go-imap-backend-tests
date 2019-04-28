@@ -197,6 +197,8 @@ func Mailbox_SearchMessages_Body(t *testing.T, newBack NewBackFunc, closeBack Cl
 	for _, crit := range matchTests {
 		crit := crit
 		t.Run("Crit "+crit.name, func(t *testing.T) {
+			skipIfExcluded(t)
+
 			if crit.name == "SentSince" {
 				t.Skip("Skipped due to bug in go-imap (https://github.com/emersion/go-imap/issues/222)")
 				t.SkipNow()
@@ -226,6 +228,8 @@ func Mailbox_SearchMessages_Flags(t *testing.T, newBack NewBackFunc, closeBack C
 		crit := crit
 		name := "Crit " + strconv.Itoa(i+1)
 		t.Run(name, func(t *testing.T) {
+			skipIfExcluded(t)
+
 			assert.NilError(t, u.CreateMailbox("TEST"+name))
 			mbox, err := u.GetMailbox("TEST" + name)
 			assert.NilError(t, err)

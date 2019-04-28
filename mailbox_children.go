@@ -29,6 +29,8 @@ func Mailbox_Children(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc
 	assert.Equal(t, info.Name, mbox.Name(), "Mailbox name mismatch")
 
 	t.Run("HasChildren attr", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		b, ok := b.(children.Backend)
 		if !ok || !b.EnableChildrenExt() {
 			t.Skip("CHILDREN extension is not implemeted")

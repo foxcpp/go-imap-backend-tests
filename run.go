@@ -39,6 +39,7 @@ func getFunctionName(i interface{}) string {
 func RunTests(t *testing.T, newBackend NewBackFunc, closeBackend CloseBackFunc) {
 	addTest := func(f testFunc) {
 		t.Run(getFunctionName(f), func(t *testing.T) {
+			skipIfExcluded(t)
 			f(t, newBackend, closeBackend)
 		})
 	}

@@ -115,6 +115,8 @@ func Mailbox_ListMessages_Body(t *testing.T, newBack NewBackFunc, closeBack Clos
 	for _, test := range bodyTests {
 		test := test
 		t.Run(test.section, func(t *testing.T) {
+			skipIfExcluded(t)
+
 			ch := make(chan *imap.Message, 10)
 			assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchItem(test.section)}, ch))
 			assert.Assert(t, is.Len(ch, 1), "Wrong number of messages returned")
@@ -210,6 +212,8 @@ func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack Clos
 	createMsgs(t, mbox, 1)
 
 	t.Run("fetch bodystruct", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
 		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchBodyStructure}, ch))
@@ -221,6 +225,8 @@ func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack Clos
 	})
 
 	t.Run("fetch envelope", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
 		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchEnvelope}, ch))
@@ -240,6 +246,8 @@ func Mailbox_ListMessages_Multi(t *testing.T, newBack NewBackFunc, closeBack Clo
 	createMsgs(t, mbox, 1)
 
 	t.Run("fetch uid,body[]", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
 		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchUid, imap.FetchItem("BODY[]")}, ch))
@@ -255,6 +263,8 @@ func Mailbox_ListMessages_Multi(t *testing.T, newBack NewBackFunc, closeBack Clo
 		}
 	})
 	t.Run("fetch uid,body[header]", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
 		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchUid, imap.FetchItem("BODY[HEADER]")}, ch))

@@ -215,6 +215,8 @@ func Mailbox_MessageUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		opArg []string, expectedNewFlags map[uint32][]string) {
 
 		t.Run(fmt.Sprintf("seqset=%v op=%v opArg=%v", seqset, op, opArg), func(t *testing.T) {
+			skipIfExcluded(t)
+
 			mbox := getMbox(t, u)
 
 			for i := 1; i <= len(initialFlags); i++ {
@@ -342,6 +344,8 @@ func Mailbox_ExpungeUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 
 	testSlots := func(msgsCount int, seqset string, matchedMsgs int, expectedSlots []uint32) {
 		t.Run(seqset, func(t *testing.T) {
+			skipIfExcluded(t)
+
 			mbox := getMbox(t, u)
 			createMsgs(t, mbox, msgsCount)
 			consumeUpdates(t, upds, msgsCount)
@@ -381,6 +385,8 @@ func Mailbox_ExpungeUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 
 	// Make sure backend returns seqnums, not UIDs.
 	t.Run("Not UIDs", func(t *testing.T) {
+		skipIfExcluded(t)
+
 		mbox := getMbox(t, u)
 		createMsgs(t, mbox, 6)
 		consumeUpdates(t, upds, 6)
