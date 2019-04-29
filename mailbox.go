@@ -116,6 +116,47 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 		assert.NilError(t, err)
 		assert.Equal(t, status.UnseenSeqNum, uint32(2), "UnseenSeqNum is invalid")
 	})
+
+	t.Run("Flags", func(t *testing.T) {
+		skipIfExcluded(t)
+
+		b := newBack()
+		defer closeBack(b)
+		u := getUser(t, b)
+		defer assert.NilError(t, u.Logout())
+		mbox := getMbox(t, u)
+
+		createMsgs(t, mbox, 1)
+		status, err := mbox.Status([]imap.StatusItem{})
+		assert.NilError(t, err, "mbox.Status failed")
+
+		flagset := make(map[string]struct{}, len(status.Flags))
+		check := func(name string) {
+			if _, ok := flagset["$Test1-1"]; !ok {
+				t.Error("Missing used flag in", name, "($Test1-1)")
+			}
+			if _, ok := flagset["$Test1-2"]; !ok {
+				t.Error("Missing used flag in", name, "($Test1-2)")
+			}
+		}
+
+		for _, flag := range status.Flags {
+			flagset[flag] = struct{}{}
+		}
+		t.Log("FLAGS", flagset)
+		check("FLAGS")
+
+		if _, ok := flagset[`\*`]; ok {
+			t.Error("\\* should not be present in FLAGS")
+		}
+
+		flagset = make(map[string]struct{}, len(status.PermanentFlags))
+		for _, flag := range status.PermanentFlags {
+			flagset[flag] = struct{}{}
+		}
+		t.Log("PERMANENTFLAGS", flagset)
+		check("PERMANENTFLAGS")
+	})
 }
 
 func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
