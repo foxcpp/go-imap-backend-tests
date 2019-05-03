@@ -64,6 +64,14 @@ var bodyTests = []struct {
 		body:    testHeaderNoFromToString,
 	},
 	{
+		section: "BODY[HEADER.FIELDS (From To)]<0.2>",
+		body:    testHeaderFromToString[:2],
+	},
+	{
+		section: "BODY[HEADER.FIELDS.NOT (From To)]<0.2>",
+		body:    testHeaderNoFromToString[:2],
+	},
+	{
 		section: "BODY[1.1.HEADER]",
 		body:    testTextHeaderString,
 	},
@@ -72,8 +80,16 @@ var bodyTests = []struct {
 		body:    testTextContentTypeString,
 	},
 	{
-		section: "BODY[1.1.HEADER.FIELDS.NOT (From To)]",
+		section: "BODY[1.1.HEADER.FIELDS.NOT (Content-Type)]",
 		body:    testTextNoContentTypeString,
+	},
+	{
+		section: "BODY[1.1.HEADER.FIELDS (Content-Type)]<0.2>",
+		body:    testTextContentTypeString[:2],
+	},
+	{
+		section: "BODY[1.1.HEADER.FIELDS.NOT (Content-Type)]<0.2>",
+		body:    testTextNoContentTypeString[:2],
 	},
 	{
 		section: "BODY[2.HEADER]",
