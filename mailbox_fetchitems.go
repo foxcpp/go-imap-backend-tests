@@ -235,6 +235,49 @@ var testEnvelope = &imap.Envelope{
 	ReplyTo:   []*imap.Address{},
 }
 
+func stripEnvelope(env *imap.Envelope) {
+	if env.From == nil {
+		env.From = []*imap.Address{}
+	}
+	if env.To == nil {
+		env.To = []*imap.Address{}
+	}
+	if env.Sender == nil {
+		env.Sender = []*imap.Address{}
+	}
+	if env.Cc == nil {
+		env.Cc = []*imap.Address{}
+	}
+	if env.Bcc == nil {
+		env.Bcc = []*imap.Address{}
+	}
+	if env.ReplyTo == nil {
+		env.ReplyTo = []*imap.Address{}
+	}
+}
+
+func stripBodyStructure(bs *imap.BodyStructure) {
+	if bs.Params == nil {
+		bs.Params = map[string]string{}
+	}
+	if bs.Parts == nil {
+		bs.Parts = []*imap.BodyStructure{}
+	}
+	if bs.DispositionParams == nil {
+		bs.DispositionParams = map[string]string{}
+	}
+	if bs.Language == nil {
+		bs.Language = []string{}
+	}
+	if bs.Location == nil {
+		bs.Location = []string{}
+	}
+
+	for _, part := range bs.Parts {
+		stripBodyStructure(part)
+	}
+}
+
 func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
@@ -253,6 +296,8 @@ func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack Clos
 		msg := <-ch
 		assert.Equal(t, msg.SeqNum, uint32(1))
 
+		stripBodyStructure(msg.BodyStructure)
+		stripBodyStructure(testBodyStructure)
 		assert.DeepEqual(t, msg.BodyStructure, testBodyStructure)
 	})
 
@@ -265,6 +310,8 @@ func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack Clos
 		assert.Assert(t, is.Len(ch, 1), "Wrong number of messages returned")
 		msg := <-ch
 
+		stripEnvelope(msg.Envelope)
+		stripEnvelope(testEnvelope)
 		assert.DeepEqual(t, msg.Envelope, testEnvelope)
 	})
 }
