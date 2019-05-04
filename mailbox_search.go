@@ -307,19 +307,36 @@ func Mailbox_SearchMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBa
 
 			assert.NilError(t, mbox.CreateMessage(test.flags, test.date, strings.NewReader(testMailString)))
 
-			res, err := mbox.SearchMessages(false, test.criteria)
-			assert.NilError(t, err)
-			if test.res {
-				if !assert.Check(t, len(res) == 1 && res[0] == 1, "Criteria not matched when expected") {
-					t.Logf("Criteria: %+v\n", test.criteria)
-					t.Logf("Res: %+v\n", res)
+			t.Run("seq", func(t *testing.T) {
+				res, err := mbox.SearchMessages(false, test.criteria)
+				assert.NilError(t, err)
+				if test.res {
+					if !assert.Check(t, len(res) == 1 && res[0] == 1, "Criteria not matched when expected") {
+						t.Logf("Criteria: %+v\n", test.criteria)
+						t.Logf("Res: %+v\n", res)
+					}
+				} else {
+					if !assert.Check(t, len(res) == 0, "Criteria matched when not expected") {
+						t.Logf("Criteria: %+v\n", test.criteria)
+						t.Logf("Res: %+v\n", res)
+					}
 				}
-			} else {
-				if !assert.Check(t, len(res) == 0, "Criteria matched when not expected") {
-					t.Logf("Criteria: %+v\n", test.criteria)
-					t.Logf("Res: %+v\n", res)
+			})
+			t.Run("uid", func(t *testing.T) {
+				res, err := mbox.SearchMessages(true, test.criteria)
+				assert.NilError(t, err)
+				if test.res {
+					if !assert.Check(t, len(res) == 1 && res[0] == 2, "Criteria not matched when expected") {
+						t.Logf("Criteria: %+v\n", test.criteria)
+						t.Logf("Res: %+v\n", res)
+					}
+				} else {
+					if !assert.Check(t, len(res) == 0, "Criteria matched when not expected") {
+						t.Logf("Criteria: %+v\n", test.criteria)
+						t.Logf("Res: %+v\n", res)
+					}
 				}
-			}
+			})
 		})
 	}
 }
