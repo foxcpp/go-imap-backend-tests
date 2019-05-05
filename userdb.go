@@ -3,6 +3,7 @@ package backendtests
 import (
 	"testing"
 
+	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/backend"
 	"gotest.tools/assert"
 )
@@ -14,11 +15,11 @@ func UserDB_CreateUser(t *testing.T, newBack NewBackFunc, closeBack CloseBackFun
 	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
 	assert.Error(t, b.CreateUser("username1", "password1"), ErrUserAlreadyExists.Error(), "CreateUser username1 (again) failed")
 
-	u, err := b.Login("username1", "password1")
+	u, err := b.Login(&imap.ConnInfo{}, "username1", "password1")
 	assert.NilError(t, err, "GetUser username1 failed")
 	assert.NilError(t, u.Logout())
 
-	_, err = b.Login("username2", "password1")
+	_, err = b.Login(&imap.ConnInfo{}, "username2", "password1")
 	assert.Error(t, err, backend.ErrInvalidCredentials.Error(), "GetUser username2 failed")
 }
 
@@ -28,7 +29,7 @@ func UserDB_Login(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 
 	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
 
-	u, err := b.Login("username1", "password1")
+	u, err := b.Login(&imap.ConnInfo{}, "username1", "password1")
 	assert.NilError(t, err, "Login username1")
 	assert.NilError(t, u.Logout())
 }
@@ -39,16 +40,16 @@ func UserDB_SetPassword(t *testing.T, newBack NewBackFunc, closeBack CloseBackFu
 
 	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
 
-	u, err := b.Login("username1", "password1")
+	u, err := b.Login(&imap.ConnInfo{}, "username1", "password1")
 	assert.NilError(t, err, "Login with original password")
 	assert.NilError(t, u.Logout())
 
 	assert.NilError(t, b.SetUserPassword("username1", "password2"), "SetPassword failed")
 
-	_, err = b.Login("username1", "password1")
+	_, err = b.Login(&imap.ConnInfo{}, "username1", "password1")
 	assert.Error(t, err, backend.ErrInvalidCredentials.Error(), "Login with original password (again) failed")
 
-	u, err = b.Login("username1", "password2")
+	u, err = b.Login(&imap.ConnInfo{}, "username1", "password2")
 	assert.NilError(t, err, "Login with new password failed")
 	assert.NilError(t, u.Logout())
 }
@@ -60,6 +61,6 @@ func UserDB_DeleteUser(t *testing.T, newBack NewBackFunc, closeBack CloseBackFun
 	assert.Error(t, b.DeleteUser("username1"), ErrUserDoesntExists.Error(), "DeleteUser username1 (non existent) failed")
 	assert.NilError(t, b.CreateUser("username1", "password1"), "CreateUser username1 failed")
 	assert.NilError(t, b.DeleteUser("username1"), "DeleteUser username1 failed")
-	_, err := b.Login("username1", "password1")
+	_, err := b.Login(&imap.ConnInfo{}, "username1", "password1")
 	assert.Error(t, err, backend.ErrInvalidCredentials.Error(), "Login username failed")
 }
