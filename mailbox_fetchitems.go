@@ -125,21 +125,93 @@ var bodyTests = []struct {
 	},
 }
 
+func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
+	b := newBack()
+	defer closeBack(b)
+	u := getUser(t, b)
+	defer assert.NilError(t, u.Logout())
+
+	t.Run("without PEEK", func(t *testing.T) {
+		mbox := getMbox(t, u)
+
+		date := time.Now()
+		err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		assert.NilError(t, err)
+
+		seq, _ := imap.ParseSeqSet("1")
+		ch := make(chan *imap.Message, 10)
+		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{"BODY[]"}, ch))
+		msg := <-ch
+
+		// Changed flag should be included in fetch.
+		if _, ok := msg.Items[imap.FetchFlags]; !ok {
+			t.Fatal("flags are not returned when changed by BODY[]")
+		}
+		containsSeen := false
+		for _, flag := range msg.Flags {
+			if flag == imap.SeenFlag {
+				containsSeen = true
+			}
+		}
+		if !containsSeen {
+			t.Fatal("\\Seen flag is not set/returned when BODY[] is fetched")
+		}
+	})
+	t.Run("with PEEK", func(t *testing.T) {
+		mbox := getMbox(t, u)
+
+		date := time.Now()
+		err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		assert.NilError(t, err)
+
+		seq, _ := imap.ParseSeqSet("1")
+		ch := make(chan *imap.Message, 10)
+		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{"BODY.PEEK[]", imap.FetchFlags}, ch))
+		msg := <-ch
+
+		containsSeen := false
+		for _, flag := range msg.Flags {
+			if flag == imap.SeenFlag {
+				containsSeen = true
+			}
+		}
+		if containsSeen {
+			t.Fatal("\\Seen flag is set when BODY.PEEK[] is fetched")
+		}
+	})
+	t.Run("non-body", func(t *testing.T) {
+		mbox := getMbox(t, u)
+
+		date := time.Now()
+		err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		assert.NilError(t, err)
+
+		seq, _ := imap.ParseSeqSet("1")
+		ch := make(chan *imap.Message, 10)
+		assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchUid, imap.FetchFlags}, ch))
+		msg := <-ch
+
+		containsSeen := false
+		for _, flag := range msg.Flags {
+			if flag == imap.SeenFlag {
+				containsSeen = true
+			}
+		}
+		if containsSeen {
+			t.Fatal("\\Seen flag is set when non-body item is fetched")
+		}
+	})
+}
+
 func Mailbox_ListMessages_Body(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
-	assert.NilError(t, err)
-	u, err := b.GetUser("username1")
-	assert.NilError(t, err)
+	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-
-	assert.NilError(t, u.CreateMailbox("TEST"))
-	mbox, err := u.GetMailbox("TEST")
-	assert.NilError(t, err)
+	mbox := getMbox(t, u)
 
 	date := time.Now()
-	err = mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+	err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
 	assert.NilError(t, err)
 
 	seq, _ := imap.ParseSeqSet("1")
