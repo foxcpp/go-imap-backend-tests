@@ -90,7 +90,10 @@ func Mailbox_StatusUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		switch upd := upd.(type) {
 		case *backend.MailboxUpdate:
 			assert.Check(t, is.Equal(upd.Messages, i), "Wrong amount of messages in mailbox reported in update")
-			assert.Check(t, is.Equal(upd.Recent, i), "Wrong amount of recent messages in mailbox reported in update")
+
+			if _, ok := upd.Items[imap.StatusRecent]; ok {
+				assert.Check(t, is.Equal(upd.Recent, i), "Wrong amount of recent messages in mailbox reported in update")
+			}
 		default:
 			t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
 		}
