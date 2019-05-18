@@ -128,7 +128,9 @@ func Mailbox_StatusUpdate_Copy(t *testing.T, newBack NewBackFunc, closeBack Clos
 	case *backend.MailboxUpdate:
 		assert.Check(t, is.Equal(upd.Mailbox(), tgtMbox.Name()), "Update is for wrong mailbox")
 		assert.Check(t, is.Equal(upd.Messages, uint32(2)), "Wrong amount of messages in mailbox reported in update")
-		assert.Check(t, is.Equal(upd.Recent, uint32(2)), "Wrong amount of recent messages in mailbox reported in update")
+		if _, ok := upd.Items[imap.StatusRecent]; ok {
+			assert.Check(t, is.Equal(upd.Recent, uint32(2)), "Wrong amount of recent messages in mailbox reported in update")
+		}
 	default:
 		t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
 	}
