@@ -222,7 +222,12 @@ func Mailbox_ListMessages_Body(t *testing.T, newBack NewBackFunc, closeBack Clos
 			skipIfExcluded(t)
 
 			ch := make(chan *imap.Message, 10)
-			assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchItem(test.section)}, ch))
+			err := mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchItem(test.section)}, ch)
+			if test.body == "" && err != nil {
+				return
+			}
+			assert.NilError(t, err, "mbox.ListMessages")
+
 			assert.Assert(t, is.Len(ch, 1), "Wrong number of messages returned")
 			msg := <-ch
 			assert.Equal(t, msg.SeqNum, uint32(1))
