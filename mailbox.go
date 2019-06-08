@@ -642,9 +642,9 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		// imap.SetFlags (uid = true)
 		{
 			[][]string{
-				{"$Test1", "$Test2", imap.RecentFlag},
-				{"$Test2", imap.RecentFlag},
-				{"$Test3", imap.RecentFlag},
+				{"$Test1", "$Test2"},
+				{"$Test2"},
+				{"$Test3"},
 			},
 			"*", true, imap.SetFlags, []string{"$Test2", "$Test3"},
 			[][]string{
@@ -655,9 +655,9 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		},
 		{
 			[][]string{
-				{"$Test1", "$Test2", imap.RecentFlag},
-				{"$Test2", imap.RecentFlag},
-				{"$Test3", imap.RecentFlag},
+				{"$Test1", "$Test2"},
+				{"$Test2"},
+				{"$Test3"},
 			},
 			"2:*", true, imap.SetFlags, []string{"$Test2", "$Test3"},
 			[][]string{
@@ -668,9 +668,9 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		},
 		{
 			[][]string{
-				{"$Test1", "$Test2", imap.RecentFlag},
-				{"$Test2", imap.RecentFlag},
-				{"$Test3", imap.RecentFlag},
+				{"$Test1", "$Test2"},
+				{"$Test2"},
+				{"$Test3"},
 			},
 			"1", true, imap.SetFlags, []string{"$Test2", "$Test3"},
 			[][]string{
@@ -681,9 +681,9 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		},
 		{
 			[][]string{
-				{"$Test1", "$Test2", imap.RecentFlag},
-				{"$Test2", imap.RecentFlag},
-				{"$Test3", imap.RecentFlag},
+				{"$Test1", "$Test2"},
+				{"$Test2"},
+				{"$Test3"},
 			},
 			"2:3", true, imap.SetFlags, []string{"$Test2", "$Test3"},
 			[][]string{
@@ -694,9 +694,9 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		},
 		{
 			[][]string{
-				{"$Test1", "$Test2", imap.RecentFlag},
-				{"$Test2", imap.RecentFlag},
-				{"$Test3", imap.RecentFlag},
+				{"$Test1", "$Test2"},
+				{"$Test2"},
+				{"$Test3"},
 			},
 			"2", true, imap.SetFlags, []string{"$Test2", "$Test3"},
 			[][]string{
