@@ -40,6 +40,10 @@ var bodyTests = []struct {
 		body:    testMailString,
 	},
 	{
+		section: "BODY[]<0.2>",
+		body:    testMailString[:2],
+	},
+	{
 		section: "BODY[1.1]",
 		body:    testTextBodyString,
 	},
