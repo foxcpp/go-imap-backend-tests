@@ -29,20 +29,22 @@ func User_CreateMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFu
 	assert.NilError(t, err)
 	defer assert.NilError(t, u.Logout())
 
+	assert.NilError(t, u.CreateMailbox("TESTBOX"))
+
 	mboxes, err := u.ListMailboxes(false)
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(mboxes, 0), "Non-empty mailboxes list after user creation")
+	testBoxExists := false
+	for _, mbox := range mboxes {
+		if mbox.Name() == "TESTBOX" {
+			testBoxExists = true
+		}
+	}
+	assert.Assert(t, testBoxExists)
 
-	assert.NilError(t, u.CreateMailbox("INBOX"))
-
-	mboxes, err = u.ListMailboxes(false)
+	mbox, err := u.GetMailbox("TESTBOX")
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(mboxes, 1), "Unexpected length of mailboxes list after mailbox creation")
 
-	mbox, err := u.GetMailbox("INBOX")
-	assert.NilError(t, err)
-
-	assert.Equal(t, mbox.Name(), "INBOX", "Mailbox name mismatch")
+	assert.Equal(t, mbox.Name(), "TESTBOX", "Mailbox name mismatch")
 }
 
 func User_CreateMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
@@ -148,24 +150,8 @@ func User_RenameMailbox_INBOX(t *testing.T, newBack NewBackFunc, closeBack Close
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
 
-	assert.NilError(t, u.CreateMailbox("INBOX"))
+	u.CreateMailbox("INBOX")
 	assert.NilError(t, u.RenameMailbox("INBOX", "TEST2"))
 	_, err = u.GetMailbox("INBOX")
 	assert.NilError(t, err, "INBOX doesn't exists anymore")
-}
-
-func User_ListMailboxes(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
-	b := newBack()
-	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
-	assert.NilError(t, err)
-	u, err := b.GetUser("username1")
-	assert.NilError(t, err)
-
-	assert.NilError(t, u.CreateMailbox("INBOX"))
-
-	mboxes, err := u.ListMailboxes(false)
-	assert.NilError(t, err)
-	assert.Assert(t, is.Len(mboxes, 1), "Mailboxes count mismatch")
-	assert.Equal(t, mboxes[0].Name(), "INBOX", "Mailbox name mismatch")
 }
