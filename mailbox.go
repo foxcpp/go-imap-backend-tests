@@ -780,6 +780,10 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 				assert.Check(t, isNthMsg(msg, indx), "Message %d in target mbox is not same as %d in source mbox", i+1, indx)
 				assert.Check(t, isNthMsgFlags(msg, indx), "Message %d in target mbox is not same as %d in source mbox (flags don't match)", i+1, indx)
 			}
+
+			status, err := tgtMbox.Status([]imap.StatusItem{imap.StatusMessages})
+			assert.NilError(t, err)
+			assert.Equal(t, status.Messages, uint32(len(expectedTgtRes)))
 		})
 	}
 
@@ -940,6 +944,14 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 					})
 				}
 			}
+
+			status, err := srcMbox.Status([]imap.StatusItem{imap.StatusMessages})
+			assert.NilError(t, err)
+			assert.Equal(t, status.Messages, uint32(len(expectedSrcRes)))
+
+			status, err = tgtMbox.Status([]imap.StatusItem{imap.StatusMessages})
+			assert.NilError(t, err)
+			assert.Equal(t, status.Messages, uint32(len(expectedTgtRes)))
 		})
 	}
 
