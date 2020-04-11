@@ -10,8 +10,8 @@ import (
 )
 
 type Backend interface {
-	backend.Backend
-	IMAPUsersDB
+	GetUser(username string) (backend.User, error)
+	CreateUser(username string) error
 }
 
 // NewBackFunc should create new Backend object configured for testing.
@@ -45,10 +45,6 @@ func RunTests(t *testing.T, newBackend NewBackFunc, closeBackend CloseBackFunc) 
 	}
 
 	addTest(TestInit)
-	addTest(UserDB_CreateUser)
-	addTest(UserDB_Login)
-	addTest(UserDB_DeleteUser)
-	addTest(UserDB_SetPassword)
 	addTest(User_Username)
 	addTest(User_CreateMailbox)
 	addTest(User_CreateMailbox_Parents)

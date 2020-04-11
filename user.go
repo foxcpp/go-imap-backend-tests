@@ -11,7 +11,7 @@ import (
 func User_Username(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -23,7 +23,7 @@ func User_Username(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 func User_CreateMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -50,7 +50,7 @@ func User_CreateMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFu
 func User_CreateMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -78,7 +78,7 @@ func User_CreateMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack Clo
 func User_DeleteMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -92,7 +92,7 @@ func User_DeleteMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFu
 func User_DeleteMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -109,7 +109,7 @@ func User_DeleteMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack Clo
 func User_RenameMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -127,7 +127,7 @@ func User_RenameMailbox(t *testing.T, newBack NewBackFunc, closeBack CloseBackFu
 func User_RenameMailbox_Childrens(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
@@ -145,7 +145,7 @@ func User_RenameMailbox_Childrens(t *testing.T, newBack NewBackFunc, closeBack C
 func User_RenameMailbox_INBOX(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	err := b.CreateUser("username1", "password1")
+	err := b.CreateUser("username1")
 	assert.NilError(t, err)
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)

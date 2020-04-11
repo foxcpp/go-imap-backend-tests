@@ -19,7 +19,7 @@ import (
 
 func getNamedUser(t *testing.T, b Backend, name string) backend.User {
 	t.Helper()
-	err := b.CreateUser(name, "password1")
+	err := b.CreateUser(name)
 	assert.NilError(t, err)
 	u, err := b.GetUser(name)
 	assert.NilError(t, err)
