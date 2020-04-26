@@ -173,7 +173,13 @@ func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		mboxes, err := u.ListMailboxes(true)
 		assert.NilError(t, err)
 
-		assert.Assert(t, len(mboxes) == 1 && mboxes[0].Name() == mbox.Name(), "Mailbox is not present in list when subscribed")
+		present := false
+		for _, listed := range mboxes {
+			if listed.Name() == mbox.Name() {
+				present = true
+			}
+		}
+		assert.Assert(t, present, "Mailbox is not present in list when subscribed")
 	})
 	t.Run("SetSubscribed false", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -188,7 +194,13 @@ func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		mboxes, err := u.ListMailboxes(true)
 		assert.NilError(t, err)
 
-		assert.Assert(t, len(mboxes) == 0, "Mailbox is present in list when unsubscribed")
+		present := false
+		for _, listed := range mboxes {
+			if listed.Name() == mbox.Name() {
+				present = true
+			}
+		}
+		assert.Assert(t, !present, "Mailbox is present in list when unsubscribed")
 	})
 }
 
