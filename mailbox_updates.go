@@ -373,7 +373,8 @@ func Mailbox_ExpungeUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		matchedMsgs   int
 		expectedSlots []uint32
 	}{
-		{5, "*", 5, []uint32{}},
+		{5, "1:*", 5, []uint32{}},
+		{5, "*", 1, []uint32{1, 2, 3, 4}},
 		{5, "1", 1, []uint32{2, 3, 4, 5}},
 		{5, "2,1,5", 3, []uint32{3, 4}},
 	}

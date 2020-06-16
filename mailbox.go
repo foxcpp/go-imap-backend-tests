@@ -279,7 +279,7 @@ func Mailbox_ListMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	}{
 		{false, "1:5", []int{1, 2, 3}},
 		{false, "1:*", []int{1, 2, 3}},
-		{false, "*", []int{1, 2, 3}},
+		{false, "*", []int{3}},
 		{false, "1", []int{1}},
 		{false, "2", []int{2}},
 		{false, "3", []int{3}},
@@ -288,7 +288,8 @@ func Mailbox_ListMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		{true, "1:3", []int{1, 2, 3}},
 		{true, "1:5", []int{1, 2, 3}},
 		{true, "1:*", []int{1, 2, 3}},
-		{true, "*", []int{1, 2, 3}},
+		{true, "*", []int{3}},
+		{true, "*", []int{3}},
 		{true, "1", []int{1}},
 		{true, "2", []int{2}},
 		{true, "3", []int{3}},
@@ -332,7 +333,7 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 			}
 			assert.NilError(t, mbox.UpdateMessagesFlags(uid, seq, op, opArgs))
 
-			seq, _ = imap.ParseSeqSet("*")
+			seq, _ = imap.ParseSeqSet("1:*")
 			ch := make(chan *imap.Message, len(initialFlags)+5)
 			assert.NilError(t, mbox.ListMessages(uid, seq, []imap.FetchItem{imap.FetchUid, imap.FetchFlags}, ch))
 			assert.Assert(t, is.Len(ch, len(finalFlags)))
@@ -368,10 +369,23 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 				{imap.RecentFlag},
 				{"$Test1", imap.RecentFlag},
 			},
-			"*", true, imap.AddFlags, []string{"$Test3"},
+			"1:*", true, imap.AddFlags, []string{"$Test3"},
 			[][]string{
 				{"$Test1", "$Test2", "$Test3", imap.RecentFlag},
 				{"$Test3", imap.RecentFlag},
+				{"$Test1", "$Test3", imap.RecentFlag},
+			},
+		},
+		{
+			[][]string{
+				{"$Test1", "$Test2", imap.RecentFlag},
+				{imap.RecentFlag},
+				{"$Test1", imap.RecentFlag},
+			},
+			"*", true, imap.AddFlags, []string{"$Test3"},
+			[][]string{
+				{"$Test1", "$Test2", imap.RecentFlag},
+				{imap.RecentFlag},
 				{"$Test1", "$Test3", imap.RecentFlag},
 			},
 		},
@@ -526,9 +540,22 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 				{imap.RecentFlag},
 				{"$Test2", imap.RecentFlag},
 			},
-			"*", true, imap.RemoveFlags, []string{"$Test2"},
+			"1:*", true, imap.RemoveFlags, []string{"$Test2"},
 			[][]string{
 				{"$Test1", imap.RecentFlag},
+				{imap.RecentFlag},
+				{imap.RecentFlag},
+			},
+		},
+		{
+			[][]string{
+				{"$Test1", "$Test2", imap.RecentFlag},
+				{imap.RecentFlag},
+				{"$Test2", imap.RecentFlag},
+			},
+			"*", true, imap.RemoveFlags, []string{"$Test2"},
+			[][]string{
+				{"$Test1", "$Test2", imap.RecentFlag},
 				{imap.RecentFlag},
 				{imap.RecentFlag},
 			},
@@ -658,10 +685,23 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 				{"$Test2"},
 				{"$Test3"},
 			},
-			"*", true, imap.SetFlags, []string{"$Test2", "$Test3"},
+			"1:*", true, imap.SetFlags, []string{"$Test2", "$Test3"},
 			[][]string{
 				{"$Test2", "$Test3", imap.RecentFlag},
 				{"$Test2", "$Test3", imap.RecentFlag},
+				{"$Test2", "$Test3", imap.RecentFlag},
+			},
+		},
+		{
+			[][]string{
+				{"$Test1", "$Test2"},
+				{"$Test2"},
+				{"$Test3"},
+			},
+			"*", true, imap.SetFlags, []string{"$Test2", "$Test3"},
+			[][]string{
+				{"$Test1", "$Test2", imap.RecentFlag},
+				{"$Test2", imap.RecentFlag},
 				{"$Test2", "$Test3", imap.RecentFlag},
 			},
 		},
@@ -754,7 +794,7 @@ func Mailbox_Expunge(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc)
 
 	assert.NilError(t, mbox.Expunge())
 
-	seq, _ = imap.ParseSeqSet("*:*")
+	seq, _ = imap.ParseSeqSet("1:*")
 	ch := make(chan *imap.Message, 10)
 	assert.NilError(t, mbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchInternalDate}, ch))
 	assert.Assert(t, is.Len(ch, 1), "Expunge didn't removed messages or removed more of them")
@@ -781,7 +821,7 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 			}
 			assert.NilError(t, srcMbox.CopyMessages(uid, seq, tgtMbox.Name()))
 
-			seq, _ = imap.ParseSeqSet("*")
+			seq, _ = imap.ParseSeqSet("1:*")
 			ch := make(chan *imap.Message, len(expectedTgtRes)+10)
 			err = tgtMbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
 			assert.NilError(t, err)
@@ -813,7 +853,8 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		seqset      string
 		expectedRes []int
 	}{
-		{false, "*", []int{1, 2, 3}},
+		{false, "1:*", []int{1, 2, 3}},
+		{false, "*", []int{3}},
 		{false, "2:*", []int{2, 3}},
 		{false, "1", []int{1}},
 		{false, "1,3", []int{1, 3}},
@@ -920,7 +961,7 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 			}
 			assert.NilError(t, moveMbox.MoveMessages(uid, seq, tgtMbox.Name()))
 
-			seq, _ = imap.ParseSeqSet("*")
+			seq, _ = imap.ParseSeqSet("1:*")
 			ch := make(chan *imap.Message, len(expectedTgtRes)+10)
 			err = tgtMbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
 			assert.NilError(t, err)
@@ -983,7 +1024,8 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		expectedSrcRes []int
 		expectedTgtRes []int
 	}{
-		{false, "*", []int{}, []int{1, 2, 3}},
+		{false, "1:*", []int{}, []int{1, 2, 3}},
+		{false, "*", []int{1, 2}, []int{3}},
 		{false, "2:*", []int{1}, []int{2, 3}},
 		{false, "1", []int{2, 3}, []int{1}},
 		{false, "1,2", []int{3}, []int{1, 2}},
@@ -1045,7 +1087,7 @@ func Mailbox_MonotonicUid(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 
 	createMsgs(t, mbox, 3)
 
-	seq, _ := imap.ParseSeqSet("*")
+	seq, _ := imap.ParseSeqSet("1:*")
 
 	var uid uint32
 	ch := make(chan *imap.Message, 10)
