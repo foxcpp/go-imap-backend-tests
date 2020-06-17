@@ -295,14 +295,14 @@ var testBodyStructure = &imap.BodyStructure{
 var testEnvelope = &imap.Envelope{
 	Date: testDate,
 	From: []*imap.Address{
-		&imap.Address{
+		{
 			PersonalName: "Mitsuha Miyamizu",
 			MailboxName:  "mitsuha.miyamizu",
 			HostName:     "example.org",
 		},
 	},
 	To: []*imap.Address{
-		&imap.Address{
+		{
 			PersonalName: "Taki Tachibana",
 			MailboxName:  "taki.tachibana",
 			HostName:     "example.org",
@@ -310,10 +310,22 @@ var testEnvelope = &imap.Envelope{
 	},
 	Subject:   "Your Name.",
 	MessageId: "42@example.org",
-	Sender:    []*imap.Address{},
-	Cc:        []*imap.Address{},
-	Bcc:       []*imap.Address{},
-	ReplyTo:   []*imap.Address{},
+	Sender: []*imap.Address{
+		{
+			PersonalName: "Mitsuha Miyamizu",
+			MailboxName:  "mitsuha.miyamizu",
+			HostName:     "example.org",
+		},
+	},
+	Cc:  []*imap.Address{},
+	Bcc: []*imap.Address{},
+	ReplyTo: []*imap.Address{
+		{
+			PersonalName: "Mitsuha Miyamizu",
+			MailboxName:  "mitsuha.miyamizu",
+			HostName:     "example.org",
+		},
+	},
 }
 
 func stripEnvelope(env *imap.Envelope) {
