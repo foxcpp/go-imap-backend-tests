@@ -28,7 +28,7 @@ func getNamedUser(t *testing.T, b Backend, name string) backend.User {
 
 func getUser(t *testing.T, b Backend) backend.User {
 	t.Helper()
-	name := fmt.Sprintf("%s-%v", t.Name(), time.Now().UnixNano())
+	name := fmt.Sprintf("test%v", time.Now().UnixNano())
 	return getNamedUser(t, b, name)
 }
 
@@ -42,7 +42,7 @@ func getNamedMbox(t *testing.T, u backend.User, name string) backend.Mailbox {
 
 func getMbox(t *testing.T, u backend.User) backend.Mailbox {
 	t.Helper()
-	name := fmt.Sprintf("%s-%v", t.Name(), time.Now().UnixNano())
+	name := fmt.Sprintf("test%v", time.Now().UnixNano())
 	return getNamedMbox(t, u, name)
 }
 
