@@ -18,21 +18,6 @@ import (
 	is "gotest.tools/assert/cmp"
 )
 
-func Mailbox_Info(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
-	b := newBack()
-	defer closeBack(b)
-	u := getUser(t, b)
-	defer assert.NilError(t, u.Logout())
-
-	assert.NilError(t, u.CreateMailbox("TEST"))
-	mbox, err := u.GetMailbox("TEST")
-	assert.NilError(t, err)
-
-	info, err := mbox.Info()
-	assert.NilError(t, err)
-	assert.Equal(t, info.Name, mbox.Name(), "Mailbox name mismatch")
-}
-
 const testMsg = `To: test@test
 From: test <test@test>
 Subject: test
@@ -53,14 +38,13 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 		defer closeBack(b)
 		u := getUser(t, b)
 		defer assert.NilError(t, u.Logout())
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
-		status, err := mbox.Status([]imap.StatusItem{imap.StatusUidNext})
+		status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusUidNext})
 		assert.NilError(t, err)
 
-		date := time.Now()
-		err = mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMsg))
-		assert.NilError(t, err)
+		createMsgs(t, mbox, u, 1)
 
 		seq := imap.SeqSet{}
 		seq.AddNum(1)
@@ -72,26 +56,20 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 		assert.Equal(t, msg.Uid, status.UidNext, "UIDNEXT is incorrect")
 	})
 
-	t.Run("Messages + Recent", func(t *testing.T) {
+	t.Run("Messages", func(t *testing.T) {
 		skipIfExcluded(t)
 
 		b := newBack()
 		defer closeBack(b)
 		u := getUser(t, b)
 		defer assert.NilError(t, u.Logout())
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
-		date := time.Now()
-		err := mbox.CreateMessage([]string{"$Test3", "$Test4"}, date, strings.NewReader(testMsg))
-		assert.NilError(t, err)
+		createMsgs(t, mbox, u, 2)
 
-		date = time.Now()
-		err = mbox.CreateMessage([]string{"$Test3", "$Test4"}, date, strings.NewReader(testMsg))
+		status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusRecent, imap.StatusMessages})
 		assert.NilError(t, err)
-
-		status, err := mbox.Status([]imap.StatusItem{imap.StatusRecent, imap.StatusMessages})
-		assert.NilError(t, err)
-		assert.Equal(t, status.Recent, uint32(2), "Recent is invalid")
 		assert.Equal(t, status.Messages, uint32(2), "Messages is invalid")
 	})
 
@@ -102,19 +80,18 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 		defer closeBack(b)
 		u := getUser(t, b)
 		defer assert.NilError(t, u.Logout())
-		mbox := getMbox(t, u)
 
-		date := time.Now()
-		err := mbox.CreateMessage([]string{"$Test3", "$Test4", imap.SeenFlag}, date, strings.NewReader(testMsg))
+		assert.NilError(t, u.CreateMailbox("unseenSeqNum"))
+		status, mbox, err := u.GetMailbox("unseenSeqNum", false, &noopConn{})
+		assert.NilError(t, err)
+		
+		createMsgs(t, mbox, u, 2)
+		
+		mbox.Close()
+		status, mbox, err = u.GetMailbox("unseenSeqNum", false, &noopConn{})
 		assert.NilError(t, err)
 
-		date = time.Now()
-		err = mbox.CreateMessage([]string{"$Test3", "$Test4"}, date, strings.NewReader(testMsg))
-		assert.NilError(t, err)
-
-		status, err := mbox.Status(nil)
-		assert.NilError(t, err)
-		assert.Equal(t, status.UnseenSeqNum, uint32(2), "UnseenSeqNum is invalid")
+		assert.Equal(t, status.UnseenSeqNum, uint32(1), "UnseenSeqNum is invalid")
 	})
 
 	t.Run("Flags", func(t *testing.T) {
@@ -124,11 +101,14 @@ func Mailbox_Status(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) 
 		defer closeBack(b)
 		u := getUser(t, b)
 		defer assert.NilError(t, u.Logout())
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
-		createMsgs(t, mbox, 1)
-		status, err := mbox.Status([]imap.StatusItem{})
-		assert.NilError(t, err, "mbox.Status failed")
+		createMsgs(t, mbox, u, 1)
+		
+		mbox.Close()
+		status, mbox, err := u.GetMailbox(mbox.Name(), false, &noopConn{})
+		assert.NilError(t, err)
 
 		flagset := make(map[string]struct{}, len(status.Flags))
 		check := func(name string) {
@@ -167,15 +147,16 @@ func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		defer closeBack(b)
 		u := getUser(t, b)
 		defer assert.NilError(t, u.Logout())
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
-		assert.NilError(t, mbox.SetSubscribed(true))
+		assert.NilError(t, u.SetSubscribed(mbox.Name(), true))
 		mboxes, err := u.ListMailboxes(true)
 		assert.NilError(t, err)
 
 		present := false
 		for _, listed := range mboxes {
-			if listed.Name() == mbox.Name() {
+			if listed.Name == mbox.Name() {
 				present = true
 			}
 		}
@@ -188,15 +169,16 @@ func Mailbox_SetSubscribed(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		defer closeBack(b)
 		u := getUser(t, b)
 		defer assert.NilError(t, u.Logout())
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
-		assert.NilError(t, mbox.SetSubscribed(false))
+		assert.NilError(t, u.SetSubscribed(mbox.Name(), false))
 		mboxes, err := u.ListMailboxes(true)
 		assert.NilError(t, err)
 
 		present := false
 		for _, listed := range mboxes {
-			if listed.Name() == mbox.Name() {
+			if listed.Name == mbox.Name() {
 				present = true
 			}
 		}
@@ -210,14 +192,16 @@ func Mailbox_CreateMessage(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
 
-	mbox := getMbox(t, u)
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
 
-	status, err := mbox.Status([]imap.StatusItem{imap.StatusUidNext})
+	status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusUidNext})
 	assert.NilError(t, err)
-
+	
 	date := time.Now()
-	err = mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMsg))
+	err = u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMsg))
 	assert.NilError(t, err)
+	assert.NilError(t, mbox.Poll(true))
 
 	seq := imap.SeqSet{}
 	seq.AddNum(status.UidNext)
@@ -243,9 +227,10 @@ func Mailbox_ListMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u)
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
 
-	createMsgs(t, mbox, 3)
+	createMsgs(t, mbox, u,3)
 
 	testMsgs := func(uid bool, seqset string, expectedIndxes []int) {
 		skipIfExcluded(t)
@@ -259,7 +244,14 @@ func Mailbox_ListMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 			seq, _ := imap.ParseSeqSet(seqset)
 
 			ch := make(chan *imap.Message, 10)
-			assert.NilError(t, mbox.ListMessages(uid, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch))
+			
+			err := mbox.ListMessages(uid, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
+			if len(expectedIndxes) == 0 && !uid {
+				assert.Assert(t, err != nil)
+				return
+			}
+
+			assert.NilError(t, err, ch)
 			assert.Assert(t, is.Len(ch, len(expectedIndxes)), "Wrong number of messages returned")
 
 			for i := 1; i <= len(expectedIndxes); i++ {
@@ -288,7 +280,6 @@ func Mailbox_ListMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		{true, "1:3", []int{1, 2, 3}},
 		{true, "1:5", []int{1, 2, 3}},
 		{true, "1:*", []int{1, 2, 3}},
-		{true, "*", []int{3}},
 		{true, "*", []int{3}},
 		{true, "1", []int{1}},
 		{true, "2", []int{2}},
@@ -322,16 +313,23 @@ func Mailbox_SetMessageFlags(t *testing.T, newBack NewBackFunc, closeBack CloseB
 		return t.Run(fmt.Sprintf("uid=%v seqset=%v op=%v opArgs=%v", uid, seqset, op, opArgs), func(t *testing.T) {
 			skipIfExcluded(t)
 
-			mbox := getMbox(t, u)
+			mbox := getMbox(t, u, nil)
+			defer mbox.Close()
 			for _, flagset := range initialFlags {
-				assert.NilError(t, mbox.CreateMessage(flagset, time.Now(), strings.NewReader(testMsg)))
+				assert.NilError(t, u.CreateMessage(mbox.Name(), flagset, time.Now(), strings.NewReader(testMsg)))
+				assert.NilError(t, mbox.Poll(true))
 			}
 
 			seq, err := imap.ParseSeqSet(seqset)
 			if err != nil {
 				panic(err)
 			}
-			assert.NilError(t, mbox.UpdateMessagesFlags(uid, seq, op, opArgs))
+			err = mbox.UpdateMessagesFlags(uid, seq, op, true, opArgs)
+			if !uid && !seq.Dynamic() && seq.Contains(45) {
+				assert.Assert(t, err != nil)
+				return
+			}
+			assert.NilError(t, err)
 
 			seq, _ = imap.ParseSeqSet("1:*")
 			ch := make(chan *imap.Message, len(initialFlags)+5)
@@ -780,17 +778,18 @@ func Mailbox_Expunge(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc)
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u)
-	createMsgs(t, mbox, 3)
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
+	createMsgs(t, mbox, u,3)
 
 	assert.NilError(t, mbox.Expunge())
 
-	status, err := mbox.Status([]imap.StatusItem{imap.StatusMessages})
+	status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusMessages})
 	assert.NilError(t, err)
 	assert.Equal(t, status.Messages, uint32(3), "Expunge deleted non-flagged messages")
 
 	seq, _ := imap.ParseSeqSet("2:3")
-	assert.NilError(t, mbox.UpdateMessagesFlags(false, seq, imap.AddFlags, []string{imap.DeletedFlag}))
+	assert.NilError(t, mbox.UpdateMessagesFlags(false, seq, imap.AddFlags, true, []string{imap.DeletedFlag}))
 
 	assert.NilError(t, mbox.Expunge())
 
@@ -812,18 +811,26 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		skipIfExcluded(t)
 
 		return t.Run(fmt.Sprintf("uid=%v seqset=%v", uid, seqset), func(t *testing.T) {
-			srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
-			createMsgs(t, srcMbox, 3)
+			srcMbox, tgtMbox := getMbox(t, u, nil), getMbox(t, u,nil)
+			defer srcMbox.Close()
+			defer tgtMbox.Close()
+			createMsgs(t, srcMbox, u,3)
 
 			seq, err := imap.ParseSeqSet(seqset)
 			if err != nil {
 				panic(err)
 			}
-			assert.NilError(t, srcMbox.CopyMessages(uid, seq, tgtMbox.Name()))
+			err = srcMbox.CopyMessages(uid, seq, tgtMbox.Name())
+			if !uid && !seq.Dynamic() && seq.Contains(45) {
+				assert.Assert(t, err != nil)
+				return
+			}
+			assert.NilError(t, err)
+			assert.NilError(t, tgtMbox.Poll(true))
 
 			seq, _ = imap.ParseSeqSet("1:*")
 			ch := make(chan *imap.Message, len(expectedTgtRes)+10)
-			err = tgtMbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
+			err = tgtMbox.ListMessages(true, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
 			assert.NilError(t, err)
 			assert.Assert(t, is.Len(ch, len(expectedTgtRes)), "Wrong amount of messages copied")
 
@@ -833,7 +840,7 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 				assert.Check(t, isNthMsgFlags(msg, indx), "Message %d in target mbox is not same as %d in source mbox (flags don't match)", i+1, indx)
 			}
 
-			status, err := tgtMbox.Status([]imap.StatusItem{imap.StatusMessages})
+			status, err := u.Status(tgtMbox.Name(), []imap.StatusItem{imap.StatusMessages})
 			assert.NilError(t, err)
 			assert.Equal(t, status.Messages, uint32(len(expectedTgtRes)))
 		})
@@ -842,8 +849,9 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	t.Run("Non-Existent Dest", func(t *testing.T) {
 		skipIfExcluded(t)
 
-		srcMbox := getMbox(t, u)
-		createMsgs(t, srcMbox, 3)
+		srcMbox := getMbox(t, u, nil)
+		defer srcMbox.Close()
+		createMsgs(t, srcMbox, u,3)
 		seq, _ := imap.ParseSeqSet("2:3")
 		assert.Error(t, srcMbox.CopyMessages(false, seq, "NONEXISTENT"), backend.ErrNoSuchMailbox.Error())
 	})
@@ -882,16 +890,20 @@ func Mailbox_CopyMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	t.Run("Recent flag", func(t *testing.T) {
 		skipIfExcluded(t)
 
-		srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
-		createMsgs(t, srcMbox, 1)
+		srcMbox, tgtMbox := getMbox(t, u, nil), getMbox(t, u, nil)
+		defer srcMbox.Close()
+		defer tgtMbox.Close()
+		createMsgs(t, srcMbox, u,1)
 
 		seq, err := imap.ParseSeqSet("1")
 		if err != nil {
 			panic(err)
 		}
 
-		assert.NilError(t, srcMbox.UpdateMessagesFlags(false, seq, imap.SetFlags, []string{"$Test1"}))
+		assert.NilError(t, srcMbox.UpdateMessagesFlags(false, seq, imap.SetFlags, true, []string{"$Test1"}))
 		assert.NilError(t, srcMbox.CopyMessages(false, seq, tgtMbox.Name()))
+		
+		assert.NilError(t, tgtMbox.Poll(true))
 
 		ch := make(chan *imap.Message, 10)
 		err = tgtMbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchFlags}, ch)
@@ -913,21 +925,19 @@ func Mailbox_UidValidity_On_Rename(t *testing.T, newBack NewBackFunc, closeBack 
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
 
-	mboxSrc, mboxTgt := getMbox(t, u), getMbox(t, u)
-	createMsgs(t, mboxSrc, 5)
-	createMsgs(t, mboxTgt, 3)
+	mboxSrc, mboxTgt := getMbox(t, u, nil), getMbox(t, u, nil)
+	createMsgs(t, mboxSrc, u,5)
+	createMsgs(t, mboxTgt, u,3)
 
-	oldStatus, err := mboxTgt.Status([]imap.StatusItem{imap.StatusUidValidity, imap.StatusUidNext})
+	oldStatus, err := u.Status(mboxTgt.Name(), []imap.StatusItem{imap.StatusUidValidity, imap.StatusUidNext})
 	assert.NilError(t, err)
 
 	assert.NilError(t, u.DeleteMailbox(mboxTgt.Name()))
 	assert.NilError(t, u.RenameMailbox(mboxSrc.Name(), mboxTgt.Name()))
 
-	mboxTgt, err = u.GetMailbox(mboxTgt.Name())
+	newStatus, mboxTgt, err := u.GetMailbox(mboxTgt.Name(), false, &noopConn{})
 	assert.NilError(t, err)
-
-	newStatus, err := mboxTgt.Status([]imap.StatusItem{imap.StatusUidValidity, imap.StatusUidNext})
-	assert.NilError(t, err)
+	defer mboxTgt.Close()
 
 	if oldStatus.UidValidity == newStatus.UidValidity {
 		assert.Check(t, oldStatus.UidNext > newStatus.UidNext, "Older UIDNEXT is bigger than before, but UIDVALIDITY is same")
@@ -940,7 +950,8 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
 
-	tMbox := getMbox(t, u)
+	tMbox := getMbox(t, u, nil)
+	defer tMbox.Close()
 	if _, ok := tMbox.(move.Mailbox); !ok {
 		t.Skip("MOVE extension is not implemented (need move.Mailbox extension)")
 		t.SkipNow()
@@ -950,8 +961,10 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		return t.Run(fmt.Sprintf("uid=%v seqset=%v", uid, seqset), func(t *testing.T) {
 			skipIfExcluded(t)
 
-			srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
-			createMsgs(t, srcMbox, 3)
+			srcMbox, tgtMbox := getMbox(t, u, nil), getMbox(t, u, nil)
+			defer srcMbox.Close()
+			defer tgtMbox.Close()
+			createMsgs(t, srcMbox, u, 3)
 
 			moveMbox := srcMbox.(move.Mailbox)
 
@@ -959,7 +972,18 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 			if err != nil {
 				panic(err)
 			}
-			assert.NilError(t, moveMbox.MoveMessages(uid, seq, tgtMbox.Name()))
+
+			err = moveMbox.MoveMessages(uid, seq, tgtMbox.Name())
+			if !seq.Dynamic() && seq.Contains(45) {
+				if !uid {
+					assert.Assert(t, err != nil)	
+				} else {
+					assert.NilError(t, err)
+				}
+				return
+			}
+			assert.NilError(t, err)
+			assert.NilError(t, tgtMbox.Poll(false))
 
 			seq, _ = imap.ParseSeqSet("1:*")
 			ch := make(chan *imap.Message, len(expectedTgtRes)+10)
@@ -981,7 +1005,7 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 			}
 
 			ch = make(chan *imap.Message, len(expectedSrcRes)+10)
-			err = srcMbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
+			err = srcMbox.ListMessages(true, seq, []imap.FetchItem{imap.FetchInternalDate, imap.FetchFlags}, ch)
 			assert.NilError(t, err)
 			assert.Assert(t, is.Len(ch, len(expectedSrcRes)), "Wrong amount of messages left in src mbox")
 
@@ -998,11 +1022,11 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 				}
 			}
 
-			status, err := srcMbox.Status([]imap.StatusItem{imap.StatusMessages})
+			status, err := u.Status(srcMbox.Name(), []imap.StatusItem{imap.StatusMessages})
 			assert.NilError(t, err)
 			assert.Equal(t, status.Messages, uint32(len(expectedSrcRes)))
 
-			status, err = tgtMbox.Status([]imap.StatusItem{imap.StatusMessages})
+			status, err = u.Status(tgtMbox.Name(), []imap.StatusItem{imap.StatusMessages})
 			assert.NilError(t, err)
 			assert.Equal(t, status.Messages, uint32(len(expectedTgtRes)))
 		})
@@ -1011,9 +1035,10 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	t.Run("Non-Existent Dest", func(t *testing.T) {
 		skipIfExcluded(t)
 
-		srcMbox := getMbox(t, u)
+		srcMbox := getMbox(t, u, nil)
+		defer srcMbox.Close()
 		moveMbox := srcMbox.(move.Mailbox)
-		createMsgs(t, srcMbox, 3)
+		createMsgs(t, srcMbox, u, 3)
 		seq, _ := imap.ParseSeqSet("2:3")
 		assert.Error(t, moveMbox.MoveMessages(false, seq, "NONEXISTENT"), backend.ErrNoSuchMailbox.Error())
 	})
@@ -1054,8 +1079,10 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	t.Run("Recent flag", func(t *testing.T) {
 		skipIfExcluded(t)
 
-		srcMbox, tgtMbox := getMbox(t, u), getMbox(t, u)
-		createMsgs(t, srcMbox, 1)
+		srcMbox, tgtMbox := getMbox(t, u, nil), getMbox(t, u, nil)
+		defer srcMbox.Close()
+		defer tgtMbox.Close()
+		createMsgs(t, srcMbox, u,1)
 
 		moveMbox := srcMbox.(move.Mailbox)
 
@@ -1063,9 +1090,10 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		if err != nil {
 			panic(err)
 		}
-
-		assert.NilError(t, srcMbox.UpdateMessagesFlags(false, seq, imap.SetFlags, []string{"$Test1"}))
+		
+		assert.NilError(t, srcMbox.UpdateMessagesFlags(false, seq, imap.SetFlags, true, []string{"$Test1"}))
 		assert.NilError(t, moveMbox.MoveMessages(false, seq, tgtMbox.Name()))
+		assert.NilError(t, tgtMbox.Poll(false))
 
 		ch := make(chan *imap.Message, 10)
 		err = tgtMbox.ListMessages(false, seq, []imap.FetchItem{imap.FetchFlags}, ch)
@@ -1083,9 +1111,10 @@ func Mailbox_MonotonicUid(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u)
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
 
-	createMsgs(t, mbox, 3)
+	createMsgs(t, mbox, u,3)
 
 	seq, _ := imap.ParseSeqSet("1:*")
 
@@ -1093,6 +1122,7 @@ func Mailbox_MonotonicUid(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	ch := make(chan *imap.Message, 10)
 	err := mbox.ListMessages(true, seq, []imap.FetchItem{imap.FetchUid}, ch)
 	assert.NilError(t, err)
+	assert.Assert(t, is.Len(ch, 3))
 	msg := <-ch
 	uid = msg.Uid
 	msg = <-ch
@@ -1102,15 +1132,15 @@ func Mailbox_MonotonicUid(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	assert.Check(t, msg.Uid > uid, "UIDs are not increasing")
 	uid = msg.Uid
 
-	status, err := mbox.Status([]imap.StatusItem{imap.StatusUidNext})
+	status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusUidNext})
 	assert.NilError(t, err)
 
 	assert.Check(t, status.UidNext > uid, "UIDNEXT is smaller than UID of last message")
 
-	assert.NilError(t, mbox.UpdateMessagesFlags(true, seq, imap.AddFlags, []string{imap.DeletedFlag}))
+	assert.NilError(t, mbox.UpdateMessagesFlags(true, seq, imap.AddFlags, true, []string{imap.DeletedFlag}))
 	assert.NilError(t, mbox.Expunge())
 
-	status2, err := mbox.Status([]imap.StatusItem{imap.StatusUidNext})
+	status2, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusUidNext})
 	assert.NilError(t, err)
 
 	assert.Equal(t, status2.UidNext, status.UidNext, "EXPUNGE changed UIDNEXT value")

@@ -32,8 +32,10 @@ func Mailbox_FetchEncoded(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer u.Logout()
-	mbox := getMbox(t, u)
-	assert.NilError(t, mbox.CreateMessage([]string{}, time.Now(), strings.NewReader(encodedTestMsg)))
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
+	assert.NilError(t, u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(encodedTestMsg)))
+	assert.NilError(t, mbox.Poll(true))
 	seq, _ := imap.ParseSeqSet("1")
 
 	t.Run("envelope", func(t *testing.T) {
@@ -91,8 +93,10 @@ func Mailbox_MatchEncoded(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer u.Logout()
-	mbox := getMbox(t, u)
-	assert.NilError(t, mbox.CreateMessage([]string{}, time.Now(), strings.NewReader(encodedTestMsg)))
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
+	assert.NilError(t, u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(encodedTestMsg)))
+	assert.NilError(t, mbox.Poll(true))
 
 	t.Run("header", func(t *testing.T) {
 		crit := imap.SearchCriteria{

@@ -4,65 +4,51 @@ import (
 	"strings"
 	"testing"
 
-	imap "github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/backend"
 	"github.com/foxcpp/go-imap-backend-tests/children"
 	"gotest.tools/assert"
 )
 
 func Mailbox_Children(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
-	b := newBack()
-	defer closeBack(b)
-	u := getUser(t, b)
+	skipIfExcluded(t)
+
+	be := newBack()
+	defer closeBack(be)
+
+	b, ok := be.(children.Backend)
+	if !ok || !b.EnableChildrenExt() {
+		t.Skip("CHILDREN extension is not implemeted")
+		t.SkipNow()
+	}
+
+	u := getUser(t, be)
 	defer assert.NilError(t, u.Logout())
 
 	assert.NilError(t, u.CreateMailbox("TEST"))
-	mbox, err := u.GetMailbox("TEST")
-	assert.NilError(t, err)
-
 	assert.NilError(t, u.CreateMailbox("TESTC.TEST.FOOBAR"))
-	mboxC, err := u.GetMailbox("TESTC")
-	assert.NilError(t, err)
 
-	info, err := mbox.Info()
-	assert.NilError(t, err)
-	assert.Equal(t, info.Name, mbox.Name(), "Mailbox name mismatch")
-
-	t.Run("HasChildren attr", func(t *testing.T) {
-		skipIfExcluded(t)
-
-		b, ok := b.(children.Backend)
-		if !ok || !b.EnableChildrenExt() {
-			t.Skip("CHILDREN extension is not implemeted")
-			t.SkipNow()
-		}
-
-		info, err := mbox.Info()
-		assert.NilError(t, err)
-		checkMailboxChildrens(t, info, u, mbox)
-
-		infoC, err := mboxC.Info()
-		assert.NilError(t, err)
-		checkMailboxChildrens(t, infoC, u, mboxC)
-	})
-
+	checkMailboxChildrens(t, "TEST", ".", u)
+	checkMailboxChildrens(t, "TESTC.TEST.FOOBAR", ".", u)
 }
-func checkMailboxChildrens(t *testing.T, info *imap.MailboxInfo, u backend.User, mbox backend.Mailbox) {
+func checkMailboxChildrens(t *testing.T, name, delimiter string, u backend.User) {
 	hasChildrenAttr := false
 	hasNoChildrenAttr := false
-	for _, attr := range info.Attributes {
-		if attr == `\HasChildren` {
-			hasChildrenAttr = true
-		}
-		if attr == `\HasNoChildren` {
-			hasNoChildrenAttr = true
-		}
-	}
 	mboxes, err := u.ListMailboxes(false)
 	assert.NilError(t, err)
 	hasChildren := false
 	for _, mbx := range mboxes {
-		if strings.HasPrefix(mbx.Name(), info.Name+info.Delimiter) {
+		if mbx.Name == name {
+			for _, attr := range mbx.Attributes {
+				if attr == `\HasChildren` {
+					hasChildrenAttr = true
+				}
+				if attr == `\HasNoChildren` {
+					hasNoChildrenAttr = true
+				}
+			}
+		}
+
+		if strings.HasPrefix(mbx.Name, name+delimiter) {
 			hasChildren = true
 		}
 	}

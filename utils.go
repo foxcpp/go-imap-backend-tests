@@ -32,26 +32,33 @@ func getUser(t *testing.T, b Backend) backend.User {
 	return getNamedUser(t, b, name)
 }
 
-func getNamedMbox(t *testing.T, u backend.User, name string) backend.Mailbox {
+type noopConn struct{}
+
+func (*noopConn) SendUpdate(backend.Update) error { return nil }
+
+func getNamedMbox(t *testing.T, u backend.User, name string, conn backend.Conn) backend.Mailbox {
 	t.Helper()
 	assert.NilError(t, u.CreateMailbox(name))
-	mbox, err := u.GetMailbox(name)
+	if conn == nil {
+		conn = &noopConn{}
+	}
+	_, mbox, err := u.GetMailbox(name, false, conn)
 	assert.NilError(t, err)
 	return mbox
 }
 
-func getMbox(t *testing.T, u backend.User) backend.Mailbox {
+func getMbox(t *testing.T, u backend.User, conn backend.Conn) backend.Mailbox {
 	t.Helper()
 	name := fmt.Sprintf("test%v", time.Now().UnixNano())
-	return getNamedMbox(t, u, name)
+	return getNamedMbox(t, u, name, conn)
 }
 
 var baseDate = time.Time{}
 
-func createMsgs(t *testing.T, mbox backend.Mailbox, count int) {
+func createMsgs(t *testing.T, mbox backend.Mailbox, user backend.User, count int) {
 	t.Helper()
 	for i := 0; i < count; i++ {
-		assert.NilError(t, mbox.CreateMessage(
+		assert.NilError(t, user.CreateMessage(mbox.Name(),
 			[]string{
 				"$Test" + strconv.Itoa(i+1) + "-1",
 				"$Test" + strconv.Itoa(i+1) + "-2",
@@ -59,17 +66,18 @@ func createMsgs(t *testing.T, mbox backend.Mailbox, count int) {
 			baseDate.Add(time.Duration((i+1)*24)*time.Hour),
 			strings.NewReader(testMailString),
 		))
+		assert.NilError(t, mbox.Poll(true))
 	}
 }
 
-func createMsgsUids(t *testing.T, mbox backend.Mailbox, count int) (res []uint32) {
+func createMsgsUids(t *testing.T, mbox backend.Mailbox, user backend.User, count int) (res []uint32) {
 	t.Helper()
 	for i := 0; i < count; i++ {
-		stat, err := mbox.Status([]imap.StatusItem{imap.StatusUidNext})
+		stat, err := user.Status(mbox.Name(), []imap.StatusItem{imap.StatusUidNext})
 		assert.NilError(t, err)
 		res = append(res, stat.UidNext)
 
-		assert.NilError(t, mbox.CreateMessage(
+		assert.NilError(t, user.CreateMessage(mbox.Name(),
 			[]string{
 				"$Test" + strconv.Itoa(i+1) + "-1",
 				"$Test" + strconv.Itoa(i+1) + "-2",
@@ -77,6 +85,7 @@ func createMsgsUids(t *testing.T, mbox backend.Mailbox, count int) (res []uint32
 			baseDate.Add(time.Duration((i+1)*24)*time.Hour),
 			strings.NewReader(testMailString),
 		))
+		assert.NilError(t, mbox.Poll(true))
 	}
 	return
 }

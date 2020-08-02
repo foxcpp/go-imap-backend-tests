@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/backend"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 )
@@ -136,11 +137,16 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 	defer assert.NilError(t, u.Logout())
 
 	t.Run("without PEEK", func(t *testing.T) {
-		mbox := getMbox(t, u)
+		conn := collectorConn{}
+		mbox := getMbox(t, u, &conn)
+		defer mbox.Close()
 
 		date := time.Now()
-		err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
 		assert.NilError(t, err)
+		assert.NilError(t, mbox.Poll(true))
+		
+		conn.upds = nil
 
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
@@ -149,7 +155,10 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 
 		// Changed flag should be included in fetch.
 		if _, ok := msg.Items[imap.FetchFlags]; !ok {
-			t.Fatal("flags are not returned when changed by BODY[]")
+			if len(conn.upds) == 0 {
+				t.Fatal("flags are not returned when changed by BODY[]")
+			}
+			msg.Flags = conn.upds[0].(*backend.MessageUpdate).Flags
 		}
 		containsSeen := false
 		for _, flag := range msg.Flags {
@@ -162,11 +171,13 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 		}
 	})
 	t.Run("with PEEK", func(t *testing.T) {
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
 		date := time.Now()
-		err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
 		assert.NilError(t, err)
+		assert.NilError(t, mbox.Poll(true))
 
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
@@ -184,11 +195,13 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 		}
 	})
 	t.Run("non-body", func(t *testing.T) {
-		mbox := getMbox(t, u)
+		mbox := getMbox(t, u, nil)
+		defer mbox.Close()
 
 		date := time.Now()
-		err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
 		assert.NilError(t, err)
+		assert.NilError(t, mbox.Poll(true))
 
 		seq, _ := imap.ParseSeqSet("1")
 		ch := make(chan *imap.Message, 10)
@@ -212,11 +225,13 @@ func Mailbox_ListMessages_Body(t *testing.T, newBack NewBackFunc, closeBack Clos
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u)
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
 
 	date := time.Now()
-	err := mbox.CreateMessage([]string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+	err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
 	assert.NilError(t, err)
+	assert.NilError(t, mbox.Poll(true))
 
 	seq, _ := imap.ParseSeqSet("1")
 
@@ -263,6 +278,8 @@ var testBodyStructure = &imap.BodyStructure{
 			Extended:    true,
 			Parts: []*imap.BodyStructure{
 				{
+					Size: 17,
+					Lines: 1,
 					MIMEType:          "text",
 					MIMESubType:       "plain",
 					Params:            map[string]string{},
@@ -271,6 +288,8 @@ var testBodyStructure = &imap.BodyStructure{
 					DispositionParams: map[string]string{},
 				},
 				{
+					Size: 35,
+					Lines: 1,
 					MIMEType:          "text",
 					MIMESubType:       "html",
 					Params:            map[string]string{},
@@ -281,6 +300,8 @@ var testBodyStructure = &imap.BodyStructure{
 			},
 		},
 		{
+			Size: 19,
+			Lines: 1,
 			MIMEType:          "text",
 			MIMESubType:       "plain",
 			Params:            map[string]string{},
@@ -308,7 +329,7 @@ var testEnvelope = &imap.Envelope{
 			HostName:     "example.org",
 		},
 	},
-	Subject:   "Your Name.",
+	Subject:   "Your Name",
 	MessageId: "42@example.org",
 	Sender: []*imap.Address{
 		{
@@ -376,8 +397,9 @@ func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack Clos
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u)
-	createMsgs(t, mbox, 1)
+	mbox := getMbox(t, u,nil)
+	defer mbox.Close()
+	createMsgs(t, mbox, u,1)
 
 	t.Run("fetch bodystruct", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -414,8 +436,9 @@ func Mailbox_ListMessages_Multi(t *testing.T, newBack NewBackFunc, closeBack Clo
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u)
-	createMsgs(t, mbox, 1)
+	mbox := getMbox(t, u, nil)
+	defer mbox.Close()
+	createMsgs(t, mbox, u,1)
 
 	t.Run("fetch uid,body[]", func(t *testing.T) {
 		skipIfExcluded(t)
