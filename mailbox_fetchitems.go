@@ -329,7 +329,7 @@ var testEnvelope = &imap.Envelope{
 			HostName:     "example.org",
 		},
 	},
-	Subject:   "Your Name",
+	Subject:   "Your Name.",
 	MessageId: "42@example.org",
 	Sender: []*imap.Address{
 		{
