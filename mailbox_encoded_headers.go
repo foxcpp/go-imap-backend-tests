@@ -34,7 +34,7 @@ func Mailbox_FetchEncoded(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer u.Logout()
 	mbox := getMbox(t, u, nil)
 	defer mbox.Close()
-	assert.NilError(t, u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(encodedTestMsg)))
+	assert.NilError(t, u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(encodedTestMsg), mbox))
 	assert.NilError(t, mbox.Poll(true))
 	seq, _ := imap.ParseSeqSet("1")
 
@@ -95,7 +95,7 @@ func Mailbox_MatchEncoded(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer u.Logout()
 	mbox := getMbox(t, u, nil)
 	defer mbox.Close()
-	assert.NilError(t, u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(encodedTestMsg)))
+	assert.NilError(t, u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(encodedTestMsg), mbox))
 	assert.NilError(t, mbox.Poll(true))
 
 	t.Run("header", func(t *testing.T) {

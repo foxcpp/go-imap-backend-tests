@@ -142,10 +142,10 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 		defer mbox.Close()
 
 		date := time.Now()
-		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString), mbox)
 		assert.NilError(t, err)
 		assert.NilError(t, mbox.Poll(true))
-		
+
 		conn.upds = nil
 
 		seq, _ := imap.ParseSeqSet("1")
@@ -175,7 +175,7 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 		defer mbox.Close()
 
 		date := time.Now()
-		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString), mbox)
 		assert.NilError(t, err)
 		assert.NilError(t, mbox.Poll(true))
 
@@ -199,7 +199,7 @@ func Mailbox_ListMessages_BodyPeek(t *testing.T, newBack NewBackFunc, closeBack 
 		defer mbox.Close()
 
 		date := time.Now()
-		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+		err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString), mbox)
 		assert.NilError(t, err)
 		assert.NilError(t, mbox.Poll(true))
 
@@ -229,7 +229,7 @@ func Mailbox_ListMessages_Body(t *testing.T, newBack NewBackFunc, closeBack Clos
 	defer mbox.Close()
 
 	date := time.Now()
-	err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString))
+	err := u.CreateMessage(mbox.Name(), []string{"$Test1", "$Test2"}, date, strings.NewReader(testMailString), mbox)
 	assert.NilError(t, err)
 	assert.NilError(t, mbox.Poll(true))
 
@@ -278,8 +278,8 @@ var testBodyStructure = &imap.BodyStructure{
 			Extended:    true,
 			Parts: []*imap.BodyStructure{
 				{
-					Size: 17,
-					Lines: 1,
+					Size:              17,
+					Lines:             1,
 					MIMEType:          "text",
 					MIMESubType:       "plain",
 					Params:            map[string]string{},
@@ -288,8 +288,8 @@ var testBodyStructure = &imap.BodyStructure{
 					DispositionParams: map[string]string{},
 				},
 				{
-					Size: 35,
-					Lines: 1,
+					Size:              35,
+					Lines:             1,
 					MIMEType:          "text",
 					MIMESubType:       "html",
 					Params:            map[string]string{},
@@ -300,8 +300,8 @@ var testBodyStructure = &imap.BodyStructure{
 			},
 		},
 		{
-			Size: 19,
-			Lines: 1,
+			Size:              19,
+			Lines:             1,
 			MIMEType:          "text",
 			MIMESubType:       "plain",
 			Params:            map[string]string{},
@@ -397,9 +397,9 @@ func Mailbox_ListMessages_Meta(t *testing.T, newBack NewBackFunc, closeBack Clos
 	defer closeBack(b)
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
-	mbox := getMbox(t, u,nil)
+	mbox := getMbox(t, u, nil)
 	defer mbox.Close()
-	createMsgs(t, mbox, u,1)
+	createMsgs(t, mbox, u, 1)
 
 	t.Run("fetch bodystruct", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -438,7 +438,7 @@ func Mailbox_ListMessages_Multi(t *testing.T, newBack NewBackFunc, closeBack Clo
 	defer assert.NilError(t, u.Logout())
 	mbox := getMbox(t, u, nil)
 	defer mbox.Close()
-	createMsgs(t, mbox, u,1)
+	createMsgs(t, mbox, u, 1)
 
 	t.Run("fetch uid,body[]", func(t *testing.T) {
 		skipIfExcluded(t)

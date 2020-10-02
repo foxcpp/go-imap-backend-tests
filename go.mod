@@ -12,4 +12,4 @@ require (
 	gotest.tools v2.2.0+incompatible
 )
 
-replace github.com/emersion/go-imap => github.com/foxcpp/go-imap v1.0.0-beta.1.0.20200802083659-cf943ff91d80
+replace github.com/emersion/go-imap => github.com/foxcpp/go-imap v1.0.0-beta.1.0.20201001193006-5a1d05e53e2c
