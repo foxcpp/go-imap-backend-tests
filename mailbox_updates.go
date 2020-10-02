@@ -78,10 +78,10 @@ func Mailbox_StatusUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 	defer mbox.Close()
 
 	for i := uint32(1); i <= uint32(5); i++ {
-		createMsgs(t, mbox, u,1)
+		createMsgs(t, mbox, u, 1)
 		if i > uint32(len(conn.upds)) {
 			t.Fatal("Missing update #", i)
-		} 
+		}
 		switch upd := conn.upds[i-1].(type) {
 		case *backend.MailboxUpdate:
 			assert.Check(t, is.Equal(upd.Messages, i), "Wrong amount of messages in mailbox reported in update")
@@ -104,12 +104,12 @@ func Mailbox_StatusUpdate_Copy(t *testing.T, newBack NewBackFunc, closeBack Clos
 
 	srcMbox := getMbox(t, u, nil)
 	defer srcMbox.Close()
-	
+
 	conn := collectorConn{}
 	tgtMbox := getMbox(t, u, &conn)
 	defer tgtMbox.Close()
 
-	createMsgs(t, srcMbox, u,3)
+	createMsgs(t, srcMbox, u, 3)
 
 	seq, _ := imap.ParseSeqSet("2:3")
 	assert.NilError(t, srcMbox.CopyMessages(false, seq, tgtMbox.Name()))
@@ -130,7 +130,7 @@ func Mailbox_StatusUpdate_Copy(t *testing.T, newBack NewBackFunc, closeBack Clos
 func Mailbox_StatusUpdate_Move(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
 	b := newBack()
 	defer closeBack(b)
-	
+
 	u := getUser(t, b)
 	defer assert.NilError(t, u.Logout())
 
@@ -157,7 +157,7 @@ func Mailbox_StatusUpdate_Move(t *testing.T, newBack NewBackFunc, closeBack Clos
 
 	// We expect 1 status update for target mailbox and two expunge updates
 	// for source mailbox.
-	
+
 	assert.Assert(t, is.Len(tgtConn.upds, 1))
 	mboxUpd, ok := tgtConn.upds[0].(*backend.MailboxUpdate)
 	if !ok {
@@ -204,10 +204,10 @@ func Mailbox_MessageUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 			defer mbox.Close()
 
 			for i := 1; i <= len(initialFlags); i++ {
-				assert.NilError(t, u.CreateMessage(mbox.Name(), initialFlags[uint32(i)], time.Now(), strings.NewReader(testMsg)))
+				assert.NilError(t, u.CreateMessage(mbox.Name(), initialFlags[uint32(i)], time.Now(), strings.NewReader(testMsg), mbox))
 				assert.NilError(t, mbox.Poll(true))
 			}
-			
+
 			conn.upds = nil
 
 			seq, _ := imap.ParseSeqSet(seqset)
@@ -215,7 +215,7 @@ func Mailbox_MessageUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 
 			for i := 0; i < expectedUpdates; i++ {
 				assert.Assert(t, i < len(conn.upds), "Not enough updates sent by backend")
-				
+
 				upd := conn.upds[i]
 				switch upd := upd.(type) {
 				case *backend.MessageUpdate:
@@ -314,7 +314,7 @@ func Mailbox_ExpungeUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 	testSlots := func(msgsCount int, seqset string, matchedMsgs int, expectedSlots []uint32) {
 		t.Run(seqset, func(t *testing.T) {
 			skipIfExcluded(t)
-			
+
 			conn := collectorConn{}
 
 			mbox := getMbox(t, u, &conn)
@@ -359,12 +359,12 @@ func Mailbox_ExpungeUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 	// Make sure backend returns seqnums, not UIDs.
 	t.Run("Not UIDs", func(t *testing.T) {
 		skipIfExcluded(t)
-		
+
 		conn := collectorConn{}
 
 		mbox := getMbox(t, u, &conn)
 		defer mbox.Close()
-		createMsgs(t, mbox, u,6)
+		createMsgs(t, mbox, u, 6)
 
 		conn.upds = nil
 
@@ -373,7 +373,7 @@ func Mailbox_ExpungeUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBac
 		assert.NilError(t, mbox.Expunge())
 
 		conn.upds = nil
-		
+
 		msgs := makeMsgSlots(5)
 		seq, _ = imap.ParseSeqSet("2,1,5")
 		assert.NilError(t, mbox.UpdateMessagesFlags(false, seq, imap.AddFlags, true, []string{imap.DeletedFlag}))

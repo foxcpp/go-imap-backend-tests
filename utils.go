@@ -65,6 +65,7 @@ func createMsgs(t *testing.T, mbox backend.Mailbox, user backend.User, count int
 			},
 			baseDate.Add(time.Duration((i+1)*24)*time.Hour),
 			strings.NewReader(testMailString),
+			mbox,
 		))
 		assert.NilError(t, mbox.Poll(true))
 	}
@@ -84,6 +85,7 @@ func createMsgsUids(t *testing.T, mbox backend.Mailbox, user backend.User, count
 			},
 			baseDate.Add(time.Duration((i+1)*24)*time.Hour),
 			strings.NewReader(testMailString),
+			mbox,
 		))
 		assert.NilError(t, mbox.Poll(true))
 	}

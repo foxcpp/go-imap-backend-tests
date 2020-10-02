@@ -301,12 +301,12 @@ func Mailbox_SearchMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBa
 			mbox := getMbox(t, u, nil)
 
 			// Create a message and delete it to make sure test message will have seqnum=1 and uid=2.
-			assert.NilError(t, u.CreateMessage(mbox.Name(), test.flags, test.date, strings.NewReader(testMailString)))
+			assert.NilError(t, u.CreateMessage(mbox.Name(), test.flags, test.date, strings.NewReader(testMailString), mbox))
 			assert.NilError(t, mbox.Poll(true))
 			assert.NilError(t, mbox.UpdateMessagesFlags(false, &imap.SeqSet{Set: []imap.Seq{{1, 1}}}, imap.AddFlags, true, []string{imap.DeletedFlag}))
 			assert.NilError(t, mbox.Expunge())
 
-			assert.NilError(t, u.CreateMessage(mbox.Name(), test.flags, test.date, strings.NewReader(testMailString)))
+			assert.NilError(t, u.CreateMessage(mbox.Name(), test.flags, test.date, strings.NewReader(testMailString), mbox))
 			assert.NilError(t, mbox.Poll(true))
 
 			t.Run("seq", func(t *testing.T) {
