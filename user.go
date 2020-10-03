@@ -56,19 +56,31 @@ func User_CreateMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack Clo
 	assert.NilError(t, err)
 	defer assert.NilError(t, u.Logout())
 
-	assert.NilError(t, u.CreateMailbox("INBOX.FOOBAR.BAR"))
-
 	mboxes, err := u.ListMailboxes(false)
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(mboxes, 3), "Unexpected length of mailboxes list after mailbox creation")
 
-	_, mbox, err := u.GetMailbox("INBOX.FOOBAR.BAR", true, &noopConn{})
-	assert.NilError(t, err)
-	assert.Equal(t, mbox.Name(), "INBOX.FOOBAR.BAR", "Mailbox name mismatch")
+	delimiter := "."
+	initialLength := 0
+	if len(mboxes) > 0 {
+		delimiter = mboxes[0].Delimiter
+		initialLength = len(mboxes)
+	}
 
-	_, mbox, err = u.GetMailbox("INBOX.FOOBAR", true, &noopConn{})
+	mailboxName := "INBOX" + delimiter + "FOOBAR" + delimiter + "BAR"
+	assert.NilError(t, u.CreateMailbox(mailboxName))
+
+	mboxes, err = u.ListMailboxes(false)
 	assert.NilError(t, err)
-	assert.Equal(t, mbox.Name(), "INBOX.FOOBAR", "Mailbox name mismatch")
+	assert.Assert(t, is.Len(mboxes, initialLength+2), "Unexpected length of mailboxes list after mailbox creation")
+
+	_, mbox, err := u.GetMailbox(mailboxName, true, &noopConn{})
+	assert.NilError(t, err)
+	assert.Equal(t, mbox.Name(), mailboxName, "Mailbox name mismatch")
+
+	mailboxName = "INBOX" + delimiter + "FOOBAR"
+	_, mbox, err = u.GetMailbox(mailboxName, true, &noopConn{})
+	assert.NilError(t, err)
+	assert.Equal(t, mbox.Name(), mailboxName, "Mailbox name mismatch")
 
 	_, mbox, err = u.GetMailbox("INBOX", true, &noopConn{})
 	assert.NilError(t, err)
@@ -98,11 +110,22 @@ func User_DeleteMailbox_Parents(t *testing.T, newBack NewBackFunc, closeBack Clo
 	assert.NilError(t, err)
 	defer assert.NilError(t, u.Logout())
 
-	assert.NilError(t, u.CreateMailbox("TEST.FOOBAR.FOO"))
-	assert.NilError(t, u.DeleteMailbox("TEST"))
-	_, _, err = u.GetMailbox("TEST.FOOBAR.FOO", true, &noopConn{})
+	mboxes, err := u.ListMailboxes(false)
 	assert.NilError(t, err)
-	_, _, err = u.GetMailbox("TEST.FOOBAR", true, &noopConn{})
+
+	delimiter := "."
+	if len(mboxes) > 0 {
+		delimiter = mboxes[0].Delimiter
+	}
+
+	mailboxName := "TEST" + delimiter + "FOOBAR" + delimiter + "FOO"
+	assert.NilError(t, u.CreateMailbox(mailboxName))
+	assert.NilError(t, u.DeleteMailbox("TEST"))
+
+	_, _, err = u.GetMailbox(mailboxName, true, &noopConn{})
+	assert.NilError(t, err)
+
+	_, _, err = u.GetMailbox("TEST"+delimiter+"FOOBAR", true, &noopConn{})
 	assert.NilError(t, err)
 }
 
@@ -132,14 +155,26 @@ func User_RenameMailbox_Childrens(t *testing.T, newBack NewBackFunc, closeBack C
 	u, err := b.GetUser("username1")
 	assert.NilError(t, err)
 
-	assert.NilError(t, u.CreateMailbox("TEST.FOOBAR.BAR"))
+	mboxes, err := u.ListMailboxes(false)
+	assert.NilError(t, err)
+
+	delimiter := "."
+	if len(mboxes) > 0 {
+		delimiter = mboxes[0].Delimiter
+	}
+
+	assert.NilError(t, u.CreateMailbox("TEST"+delimiter+"FOOBAR"+delimiter+"BAR"))
 	assert.NilError(t, u.RenameMailbox("TEST", "TEST2"))
-	_, mbox, err := u.GetMailbox("TEST2.FOOBAR.BAR", true, &noopConn{})
+
+	mailboxName := "TEST2" + delimiter + "FOOBAR" + delimiter + "BAR"
+	_, mbox, err := u.GetMailbox(mailboxName, true, &noopConn{})
 	assert.NilError(t, err, "Mailbox children with new name doesn't exists")
-	assert.Equal(t, mbox.Name(), "TEST2.FOOBAR.BAR", "Mailbox name dismatch in returned object")
-	_, mbox, err = u.GetMailbox("TEST2.FOOBAR", true, &noopConn{})
+	assert.Equal(t, mbox.Name(), mailboxName, "Mailbox name mismatch in returned object")
+
+	mailboxName = "TEST2" + delimiter + "FOOBAR"
+	_, mbox, err = u.GetMailbox(mailboxName, true, &noopConn{})
 	assert.NilError(t, err, "Mailbox children with new name doesn't exists")
-	assert.Equal(t, mbox.Name(), "TEST2.FOOBAR", "Mailbox name dismatch in returned object")
+	assert.Equal(t, mbox.Name(), mailboxName, "Mailbox name mismatch in returned object")
 }
 
 func User_RenameMailbox_INBOX(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
