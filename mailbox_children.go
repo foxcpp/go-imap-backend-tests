@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/emersion/go-imap/backend"
-	"github.com/foxcpp/go-imap-backend-tests/children"
 	"gotest.tools/assert"
 )
 
@@ -14,12 +13,6 @@ func Mailbox_Children(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc
 
 	be := newBack()
 	defer closeBack(be)
-
-	b, ok := be.(children.Backend)
-	if !ok || !b.EnableChildrenExt() {
-		t.Skip("CHILDREN extension is not implemeted")
-		t.SkipNow()
-	}
 
 	u := getUser(t, be)
 	defer assert.NilError(t, u.Logout())

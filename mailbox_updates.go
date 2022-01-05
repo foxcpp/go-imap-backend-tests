@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/emersion/go-imap"
-	move "github.com/emersion/go-imap-move"
 	"github.com/emersion/go-imap/backend"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
@@ -82,16 +81,21 @@ func Mailbox_StatusUpdate(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		if i > uint32(len(conn.upds)) {
 			t.Fatal("Missing update #", i)
 		}
-		switch upd := conn.upds[i-1].(type) {
-		case *backend.MailboxUpdate:
-			assert.Check(t, is.Equal(upd.Messages, i), "Wrong amount of messages in mailbox reported in update")
-
-			if _, ok := upd.Items[imap.StatusRecent]; ok {
-				assert.Check(t, is.Equal(upd.Recent, i), "Wrong amount of recent messages in mailbox reported in update")
+		checkUpd := func(upd backend.Update) {
+			switch upd := upd.(type) {
+			case *backend.MailboxUpdate:
+				if _, ok := upd.Items[imap.StatusMessages]; ok {
+					assert.Check(t, is.Equal(upd.Messages, i), "Wrong amount of messages in mailbox reported in update")
+				}
+				if _, ok := upd.Items[imap.StatusRecent]; ok {
+					assert.Check(t, is.Equal(upd.Recent, i), "Wrong amount of recent messages in mailbox reported in update")
+				}
+			default:
+				t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
 			}
-		default:
-			t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
 		}
+		checkUpd(conn.upds[2*(i-1)])
+		checkUpd(conn.upds[2*(i-1) + 1])
 	}
 }
 
@@ -115,16 +119,22 @@ func Mailbox_StatusUpdate_Copy(t *testing.T, newBack NewBackFunc, closeBack Clos
 	assert.NilError(t, srcMbox.CopyMessages(false, seq, tgtMbox.Name()))
 	assert.NilError(t, tgtMbox.Poll(true))
 
-	assert.Assert(t, is.Len(conn.upds, 1))
-	switch upd := conn.upds[0].(type) {
-	case *backend.MailboxUpdate:
-		assert.Check(t, is.Equal(upd.Messages, uint32(2)), "Wrong amount of messages in mailbox reported in update")
-		if _, ok := upd.Items[imap.StatusRecent]; ok {
-			assert.Check(t, is.Equal(upd.Recent, uint32(2)), "Wrong amount of recent messages in mailbox reported in update")
+	assert.Assert(t, is.Len(conn.upds, 2))
+	checkUpd := func(upd backend.Update) {
+		switch upd := upd.(type) {
+		case *backend.MailboxUpdate:
+			if _, ok := upd.Items[imap.StatusMessages]; ok {
+				assert.Check(t, is.Equal(upd.Messages, uint32(2)), "Wrong amount of messages in mailbox reported in update")
+			}
+			if _, ok := upd.Items[imap.StatusRecent]; ok {
+				assert.Check(t, is.Equal(upd.Recent, uint32(2)), "Wrong amount of recent messages in mailbox reported in update")
+			}
+		default:
+			t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
 		}
-	default:
-		t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
 	}
+	checkUpd(conn.upds[0])
+	checkUpd(conn.upds[1])
 }
 
 func Mailbox_StatusUpdate_Move(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc) {
@@ -145,9 +155,9 @@ func Mailbox_StatusUpdate_Move(t *testing.T, newBack NewBackFunc, closeBack Clos
 	createMsgs(t, srcMbox, u, 3)
 	srcConn.upds = nil
 
-	moveMbox, ok := srcMbox.(move.Mailbox)
+	moveMbox, ok := srcMbox.(backend.MoveMailbox)
 	if !ok {
-		t.Skip("Backend doesn't supports MOVE (need move.Mailbox interface)")
+		t.Skip("Backend doesn't supports MOVE (need MoveMailbox interface)")
 		t.SkipNow()
 	}
 
@@ -155,15 +165,25 @@ func Mailbox_StatusUpdate_Move(t *testing.T, newBack NewBackFunc, closeBack Clos
 	assert.NilError(t, moveMbox.MoveMessages(false, seq, tgtMbox.Name()))
 	assert.NilError(t, tgtMbox.Poll(false))
 
-	// We expect 1 status update for target mailbox and two expunge updates
+	// We expect 2 status updates (EXISTS, RECENT) for target mailbox and two expunge updates
 	// for source mailbox.
 
-	assert.Assert(t, is.Len(tgtConn.upds, 1))
-	mboxUpd, ok := tgtConn.upds[0].(*backend.MailboxUpdate)
-	if !ok {
-		t.Fatal("Non-MailboxUpdate received for target mailbox")
+	assert.Assert(t, is.Len(tgtConn.upds, 2))
+	checkUpd := func(upd backend.Update) {
+		switch upd := upd.(type) {
+		case *backend.MailboxUpdate:
+			if _, ok := upd.Items[imap.StatusMessages]; ok {
+				assert.Check(t, is.Equal(upd.Messages, uint32(2)), "Wrong amount of messages in mailbox reported in update")
+			}
+			if _, ok := upd.Items[imap.StatusRecent]; ok {
+				assert.Check(t, is.Equal(upd.Recent, uint32(2)), "Wrong amount of recent messages in mailbox reported in update")
+			}
+		default:
+			t.Errorf("Non-mailbox update sent by backend: %#v\n", upd)
+		}
 	}
-	assert.Check(t, is.Equal(mboxUpd.Messages, uint32(2)), "Wrong amount of messages in mailbox reported in update for target")
+	checkUpd(tgtConn.upds[0])
+	checkUpd(tgtConn.upds[1])
 
 	msgs := makeMsgSlots(3)
 	for _, upd := range srcConn.upds {

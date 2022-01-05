@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/emersion/go-imap"
-	move "github.com/emersion/go-imap-move"
 	"github.com/emersion/go-imap/backend"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
@@ -952,8 +951,8 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 
 	tMbox := getMbox(t, u, nil)
 	defer tMbox.Close()
-	if _, ok := tMbox.(move.Mailbox); !ok {
-		t.Skip("MOVE extension is not implemented (need move.Mailbox extension)")
+	if _, ok := tMbox.(backend.MoveMailbox); !ok {
+		t.Skip("MOVE extension is not implemented (need MoveMailbox extension)")
 		t.SkipNow()
 	}
 
@@ -966,7 +965,7 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 			defer tgtMbox.Close()
 			createMsgs(t, srcMbox, u, 3)
 
-			moveMbox := srcMbox.(move.Mailbox)
+			moveMbox := srcMbox.(backend.MoveMailbox)
 
 			seq, err := imap.ParseSeqSet(seqset)
 			if err != nil {
@@ -1037,7 +1036,7 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 
 		srcMbox := getMbox(t, u, nil)
 		defer srcMbox.Close()
-		moveMbox := srcMbox.(move.Mailbox)
+		moveMbox := srcMbox.(backend.MoveMailbox)
 		createMsgs(t, srcMbox, u, 3)
 		seq, _ := imap.ParseSeqSet("2:3")
 		assert.Error(t, moveMbox.MoveMessages(false, seq, "NONEXISTENT"), backend.ErrNoSuchMailbox.Error())
@@ -1084,7 +1083,7 @@ func Mailbox_MoveMessages(t *testing.T, newBack NewBackFunc, closeBack CloseBack
 		defer tgtMbox.Close()
 		createMsgs(t, srcMbox, u, 1)
 
-		moveMbox := srcMbox.(move.Mailbox)
+		moveMbox := srcMbox.(backend.MoveMailbox)
 
 		seq, err := imap.ParseSeqSet("1")
 		if err != nil {

@@ -1,11 +1,9 @@
 package backendtests
 
-import appendlimit "github.com/emersion/go-imap-appendlimit"
-
 // AppendLimitBackend is extension for main backend interface (backend.Backend) which
 // allows to set append limit value for testing and administration purposes.
 type AppendLimitBackend interface {
-	appendlimit.Backend
+	CreateMessageLimit() *uint32
 
 	// SetMessageLimit sets new value for limit.
 	// nil pointer means no limit.
@@ -15,7 +13,7 @@ type AppendLimitBackend interface {
 // AppendLimitUser is extension for backend.User interface which allows to
 // set append limit value for testing and administration purposes.
 type AppendLimitUser interface {
-	appendlimit.User
+	CreateMessageLimit() *uint32
 
 	// SetMessageLimit sets new value for limit.
 	// nil pointer means no limit.

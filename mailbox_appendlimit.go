@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/emersion/go-imap"
-	appendlimit "github.com/emersion/go-imap-appendlimit"
 	"github.com/emersion/go-imap/backend"
 	"gotest.tools/assert"
 )
@@ -56,7 +55,7 @@ func Backend_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		defer mbox.Close()
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 }
 
@@ -107,7 +106,7 @@ func User_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc
 		defer mbox.Close()
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 	t.Run("Override backend - Under Limit", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -133,7 +132,7 @@ func User_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackFunc
 		defer mbox.Close()
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 }
 
@@ -191,7 +190,7 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		setMboxLim(t, mbox, 500)
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 	t.Run("Override backend - Under Limit", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -216,7 +215,7 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		defer mbox.Close()
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 	t.Run("Override user - Under Limit", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -241,7 +240,7 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		defer mbox.Close()
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 	t.Run("Override backend & user - Under Limit", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -271,7 +270,7 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		setMboxLim(t, mbox, 500)
 
 		err := u.CreateMessage(mbox.Name(), []string{}, time.Now(), strings.NewReader(headerStub+strings.Repeat("A", 700)), mbox)
-		assert.Error(t, err, appendlimit.ErrTooBig.Error())
+		assert.Error(t, err, backend.ErrTooBig.Error())
 	})
 	t.Run("Status - No Limit", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -279,10 +278,10 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		mbox := getMbox(t, u, nil)
 		defer mbox.Close()
 
-		status, err := u.Status(mbox.Name(), []imap.StatusItem{appendlimit.StatusAppendLimit})
+		status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusAppendLimit})
 		assert.NilError(t, err)
 
-		assert.Equal(t, appendlimit.MailboxStatusAppendLimit(status), (*uint32)(nil), "Non-nil value for limit")
+		assert.Equal(t, status.AppendLimit, uint32(0), "Non-nil value for limit")
 	})
 	t.Run("Status - Limit Present", func(t *testing.T) {
 		skipIfExcluded(t)
@@ -291,11 +290,10 @@ func Mailbox_AppendLimit(t *testing.T, newBack NewBackFunc, closeBack CloseBackF
 		defer mbox.Close()
 		setMboxLim(t, mbox, 500)
 
-		status, err := u.Status(mbox.Name(), []imap.StatusItem{appendlimit.StatusAppendLimit})
+		status, err := u.Status(mbox.Name(), []imap.StatusItem{imap.StatusAppendLimit})
 		assert.NilError(t, err)
 
-		assert.Assert(t, appendlimit.MailboxStatusAppendLimit(status) != nil, "Nil value for limit item")
-		val := *appendlimit.MailboxStatusAppendLimit(status)
-		assert.Equal(t, val, uint32(500), "Wrong value for status item")
+		assert.Assert(t, status.AppendLimit != 0, "Nil value for limit item")
+		assert.Equal(t, status.AppendLimit, uint32(500), "Wrong value for status item")
 	})
 }
